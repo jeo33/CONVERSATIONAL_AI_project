@@ -1,0 +1,6 @@
+*.out
+*.err
+__pycache__/
+*.pyc
+script/submit_all.sh
+.env

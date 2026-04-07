@@ -206,8 +206,10 @@ def apply_h2o(model, budget_ratio=0.2, recent_ratio=0.1, cache_size=CACHE_SIZE, 
                 return (out[0], None) + out[2:]
             return out
         return patched_forward
+    orig_forwards = {}
     for layer_idx, layer in enumerate(model.model.layers):
         attn = layer.self_attn
+        orig_forwards[layer_idx] = attn.forward
         attn.forward = types.MethodType(make_patched_forward(attn.forward, layer_idx), attn)
     def eviction_hook(module, input, output):
         past_kv = getattr(output, "past_key_values", None)
@@ -240,7 +242,7 @@ def apply_h2o(model, budget_ratio=0.2, recent_ratio=0.1, cache_size=CACHE_SIZE, 
         return output
     model_hook = model.model.register_forward_hook(eviction_hook)
     print(f"H2O applied ({strategy}): {num_layers} layers patched.")
-    return model_hook, reset_scores
+    return model_hook, reset_scores, orig_forwards
 def remove_h2o(model_hook):
     model_hook.remove()
     print("Eviction hook removed")
@@ -255,7 +257,7 @@ def apply_random(model, budget_ratio=0.2, cache_size=CACHE_SIZE):
     )
     
     def reset_scores():
-        pass  # No scores to track for random eviction
+        pass  
     
     def eviction_hook(module, input, output):
         past_kv = getattr(output, "past_key_values", None)
@@ -272,12 +274,10 @@ def apply_random(model, budget_ratio=0.2, cache_size=CACHE_SIZE):
             
             device = k.device
             
-            # Randomly select TOTAL_BUDGET tokens from all positions
             all_positions = torch.arange(0, seq_len, device=device)
             perm = torch.randperm(seq_len, device=device)[:TOTAL_BUDGET]
             keep_idx = all_positions[perm].unsqueeze(0).expand(n_heads, -1)
             
-            # Sort indices to maintain order
             keep_idx, _ = keep_idx.sort(dim=1)
             
             gather_idx = keep_idx.unsqueeze(0).unsqueeze(-1).expand(bsz, -1, -1, head_dim)
@@ -292,6 +292,47 @@ def apply_random(model, budget_ratio=0.2, cache_size=CACHE_SIZE):
 
 def remove_h2o(model_hook):
     model_hook.remove()
+
+def restore_attn_forwards(model, orig_forwards):
+    """Undo the self_attn.forward patches applied by apply_h2o."""
+    for layer_idx, layer in enumerate(model.model.layers):
+        if layer_idx in orig_forwards:
+            layer.self_attn.forward = orig_forwards[layer_idx]
+    print("Attention forwards restored.")
+
+def switch_kv_mode(model, model_hook, orig_forwards, new_mode, strategy="per_head"):
+    """Switch KV cache mode without reloading the model.
+
+    Returns (model_hook, reset_scores, orig_forwards, kv_cfg) for the new mode.
+    Pass orig_forwards=None if the previous mode was full/random (no forward patching).
+    """
+    # Remove eviction hook
+    if model_hook is not None:
+        model_hook.remove()
+        print("Previous eviction hook removed.")
+    # Restore original attention forwards (only needed after H2O)
+    if orig_forwards is not None:
+        restore_attn_forwards(model, orig_forwards)
+    # Apply new mode
+    if new_mode not in KV_CONFIGS:
+        raise ValueError(f"Unknown mode '{new_mode}'. Available: {list(KV_CONFIGS.keys())}")
+    kv_cfg = KV_CONFIGS[new_mode]
+    new_orig_forwards = None
+    if kv_cfg["h2o"]:
+        model_hook, reset_scores, new_orig_forwards = apply_h2o(
+            model,
+            budget_ratio=kv_cfg["budget_ratio"],
+            recent_ratio=kv_cfg["recent_ratio"],
+            strategy=strategy,
+        )
+    elif kv_cfg.get("random", False):
+        model_hook, reset_scores = apply_random(model, budget_ratio=kv_cfg["budget_ratio"])
+    else:
+        model_hook, reset_scores = None, lambda: None
+        print("KV Mode: full cache — no eviction")
+    print(f"Switched to mode: {new_mode}")
+    return model_hook, reset_scores, new_orig_forwards, kv_cfg
+
 def visualize_and_log(model, tokenizer, sample, kv_mode, kv_cfg,
                       cache_size, max_seq_len, prefix="viz"):
     import matplotlib
@@ -496,10 +537,11 @@ def visualize_and_log(model, tokenizer, sample, kv_mode, kv_cfg,
     print(f"  prefill_latency: {prefill_latency:.4f}s")
     print(f"  mem_allocated:   {mem_allocated_mb:.1f} MB")
     print(f"  mem_reserved:    {mem_reserved_mb:.1f} MB")
-model_hook   = None
-reset_scores = None
+model_hook    = None
+reset_scores  = None
+orig_forwards = None
 if kv_cfg["h2o"]:
-    model_hook, reset_scores = apply_h2o(
+    model_hook, reset_scores, orig_forwards = apply_h2o(
         model,
         budget_ratio=kv_cfg["budget_ratio"],
         recent_ratio=kv_cfg["recent_ratio"],
