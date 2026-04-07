@@ -1,0 +1,678 @@
+#!/usr/bin/env python3
+import time
+import csv
+import sys
+import json
+import types
+import os
+import argparse
+import torch
+import torch.nn.functional as F
+from datasets import load_dataset
+from transformers import AutoTokenizer, AutoModelForCausalLM, DynamicCache
+from tqdm import tqdm
+from pathlib import Path
+import datetime
+import inspect
+def _patch_torch_autocast_compat():
+    try:
+        params = inspect.signature(torch.is_autocast_enabled).parameters
+    except (TypeError, ValueError):
+        params = {}
+    if "device_type" not in params:
+        _orig = torch.is_autocast_enabled
+        def _compat(device_type=None):
+            return _orig()
+        torch.is_autocast_enabled = _compat
+        print("[Compat] Patched torch.is_autocast_enabled for transformers compatibility")
+_patch_torch_autocast_compat()
+MODEL_NAME = "meta-llama/Llama-3.2-1B-Instruct"
+hf_token = os.environ.get("HF_TOKEN", "")
+print(f"PyTorch: {torch.__version__}")
+print(f"CUDA: {torch.cuda.is_available()}")
+if torch.cuda.is_available():
+    print(f"GPU: {torch.cuda.get_device_name(0)}")
+def parse_args():
+    parser = argparse.ArgumentParser(description="H2O KV cache evaluation")
+    parser.add_argument("--num-samples", type=int, required=True,
+                        help="Required. Number of samples to evaluate. Use -1 for full split.")
+    parser.add_argument("--split", type=str, required=True,
+                        help="Required. Dataset split, e.g. train/validation/test")
+    parser.add_argument("--kv-mode", type=str, required=True,
+                        help="Required. KV mode key from KV_CONFIGS, e.g. h2o_b1_r1")
+    parser.add_argument("--h2o-strategy", type=str, required=True,
+                        choices=["per_head", "layer_shared"],
+                        help="Required. H2O heavy-hitter strategy")
+    return parser.parse_args()
+args = parse_args()
+NUM_SAMPLES_ARG = args.num_samples
+SPLIT_ARG = args.split
+KV_MODE_ARG = args.kv_mode
+H2O_STRATEGY = args.h2o_strategy
+VALID_H2O_STRATEGIES = {"per_head", "layer_shared"}
+if H2O_STRATEGY not in VALID_H2O_STRATEGIES:
+    print(f"ERROR: Unknown H2O_STRATEGY '{H2O_STRATEGY}'. Choose: {sorted(VALID_H2O_STRATEGIES)}")
+    sys.exit(1)
+SPLIT    = SPLIT_ARG   or os.environ.get("SPLIT",    "validation")
+KV_MODE  = KV_MODE_ARG or os.environ.get("KV_MODE",  "full")
+MODEL_NAME  = os.environ.get("MODEL", "meta-llama/Llama-3.2-1B-Instruct")
+HF_TOKEN    = hf_token
+MAX_SEQ_LEN = 4096
+CACHE_SIZE  = 512
+KV_CONFIGS = {
+    "full":          {"h2o": False, "random": False, "budget_ratio": 1.0, "recent_ratio": 1.0 },
+    "random_b1":     {"h2o": False, "random": True,  "budget_ratio": 0.1, "recent_ratio": 0.1 },
+    "random_b2":     {"h2o": False, "random": True,  "budget_ratio": 0.2, "recent_ratio": 0.1 },
+    "random_b4":     {"h2o": False, "random": True,  "budget_ratio": 0.4, "recent_ratio": 0.1 },
+    "random_b6":     {"h2o": False, "random": True,  "budget_ratio": 0.6, "recent_ratio": 0.1 },
+    "random_b8":     {"h2o": False, "random": True,  "budget_ratio": 0.8, "recent_ratio": 0.1 },
+    "h2o_b1_r1":     {"h2o": True,  "random": False, "budget_ratio": 0.1, "recent_ratio": 0.1 },
+    "h2o_b1_r1":     {"h2o": True,  "random": False, "budget_ratio": 0.1, "recent_ratio": 0.1 },
+    "h2o_b2_r1":     {"h2o": True,  "random": False, "budget_ratio": 0.2, "recent_ratio": 0.1 },
+    "h2o_b2_r2":     {"h2o": True,  "random": False, "budget_ratio": 0.2, "recent_ratio": 0.2 },
+    "h2o_b3_r1":     {"h2o": True,  "random": False, "budget_ratio": 0.3, "recent_ratio": 0.1 },
+    "h2o_b3_r2":     {"h2o": True,  "random": False, "budget_ratio": 0.3, "recent_ratio": 0.2 },
+    "h2o_b3_r3":     {"h2o": True,  "random": False, "budget_ratio": 0.3, "recent_ratio": 0.3 },
+    "h2o_b4_r1":     {"h2o": True,  "random": False, "budget_ratio": 0.4, "recent_ratio": 0.1 },
+    "h2o_b4_r2":     {"h2o": True,  "random": False, "budget_ratio": 0.4, "recent_ratio": 0.2 },
+    "h2o_b4_r3":     {"h2o": True,  "random": False, "budget_ratio": 0.4, "recent_ratio": 0.3 },
+    "h2o_b4_r4":     {"h2o": True,  "random": False, "budget_ratio": 0.4, "recent_ratio": 0.4 },
+    "h2o_b5_r1":     {"h2o": True,  "random": False, "budget_ratio": 0.5, "recent_ratio": 0.1 },
+    "h2o_b5_r2":     {"h2o": True,  "random": False, "budget_ratio": 0.5, "recent_ratio": 0.2 },
+    "h2o_b5_r3":     {"h2o": True,  "random": False, "budget_ratio": 0.5, "recent_ratio": 0.3 },
+    "h2o_b5_r4":     {"h2o": True,  "random": False, "budget_ratio": 0.5, "recent_ratio": 0.4 },
+    "h2o_b5_r5":     {"h2o": True,  "random": False, "budget_ratio": 0.5, "recent_ratio": 0.5 },
+    "h2o_b6_r1":     {"h2o": True,  "random": False, "budget_ratio": 0.6, "recent_ratio": 0.1 },
+    "h2o_b6_r2":     {"h2o": True,  "random": False, "budget_ratio": 0.6, "recent_ratio": 0.2 },
+    "h2o_b6_r3":     {"h2o": True,  "random": False, "budget_ratio": 0.6, "recent_ratio": 0.3 },
+    "h2o_b6_r4":     {"h2o": True,  "random": False, "budget_ratio": 0.6, "recent_ratio": 0.4 },
+    "h2o_b6_r5":     {"h2o": True,  "random": False, "budget_ratio": 0.6, "recent_ratio": 0.5 },
+    "h2o_b7_r1":     {"h2o": True,  "random": False, "budget_ratio": 0.7, "recent_ratio": 0.1 },
+    "h2o_b7_r2":     {"h2o": True,  "random": False, "budget_ratio": 0.7, "recent_ratio": 0.2 },
+    "h2o_b7_r3":     {"h2o": True,  "random": False, "budget_ratio": 0.7, "recent_ratio": 0.3 },
+    "h2o_b7_r4":     {"h2o": True,  "random": False, "budget_ratio": 0.7, "recent_ratio": 0.4 },
+    "h2o_b7_r5":     {"h2o": True,  "random": False, "budget_ratio": 0.7, "recent_ratio": 0.5 },
+    "h2o_b8_r1":     {"h2o": True,  "random": False, "budget_ratio": 0.8, "recent_ratio": 0.1 },
+    "h2o_b8_r2":     {"h2o": True,  "random": False, "budget_ratio": 0.8, "recent_ratio": 0.2 },
+    "h2o_b8_r3":     {"h2o": True,  "random": False, "budget_ratio": 0.8, "recent_ratio": 0.3 },
+    "h2o_b8_r4":     {"h2o": True,  "random": False, "budget_ratio": 0.8, "recent_ratio": 0.4 },
+    "h2o_b8_r5":     {"h2o": True,  "random": False, "budget_ratio": 0.8, "recent_ratio": 0.5 },
+    "local_b1":      {"h2o": True,  "random": False, "budget_ratio": 0.1, "recent_ratio": 0.1 },
+    "local_b2":      {"h2o": True,  "random": False, "budget_ratio": 0.2, "recent_ratio": 0.2 },
+    "local_b3":      {"h2o": True,  "random": False, "budget_ratio": 0.3, "recent_ratio": 0.3 },
+    "local_b4":      {"h2o": True,  "random": False, "budget_ratio": 0.4, "recent_ratio": 0.4 },
+    "local_b5":      {"h2o": True,  "random": False, "budget_ratio": 0.5, "recent_ratio": 0.5 },
+    "local_b6":      {"h2o": True,  "random": False, "budget_ratio": 0.6, "recent_ratio": 0.6 },
+    "local_b7":      {"h2o": True,  "random": False, "budget_ratio": 0.7, "recent_ratio": 0.7 },
+    "local_b8":      {"h2o": True,  "random": False, "budget_ratio": 0.8, "recent_ratio": 0.8 },
+}
+if KV_MODE not in KV_CONFIGS:
+    print(f"ERROR: Unknown KV_MODE '{KV_MODE}'. Choose: {list(KV_CONFIGS.keys())}")
+    sys.exit(1)
+kv_cfg = KV_CONFIGS[KV_MODE]
+print(f"{'='*60}")
+print(f"Script started:  {datetime.datetime.now()}")
+print(f"PyTorch:         {torch.__version__}")
+print(f"CUDA:            {torch.cuda.is_available()}")
+if torch.cuda.is_available():
+    print(f"GPU:             {torch.cuda.get_device_name(0)}")
+    print(f"GPU Memory:      {torch.cuda.get_device_properties(0).total_memory/1024**3:.1f} GB")
+print(f"{'='*60}")
+print(f"Model:           {MODEL_NAME}")
+print(f"KV Mode:         {KV_MODE}  (budget={kv_cfg['budget_ratio']*100:.0f}%  recent={kv_cfg['recent_ratio']*100:.0f}%)")
+print(f"H2O Strategy:    {H2O_STRATEGY}")
+print(f"Split:           {SPLIT}")
+print(f"Samples:         {NUM_SAMPLES_ARG or 'all'}")
+print(f"{'='*60}\n")
+print("Loading dataset...")
+ds = load_dataset("cnn_dailymail", "3.0.0")
+NUM_SAMPLES = len(ds[SPLIT]) if NUM_SAMPLES_ARG == -1 else NUM_SAMPLES_ARG
+print(f"  {SPLIT} split → {NUM_SAMPLES} samples\n")
+print(f"Loading model: {MODEL_NAME}")
+tokenizer = AutoTokenizer.from_pretrained(
+    MODEL_NAME,
+    token=HF_TOKEN,
+    local_files_only=False
+)
+model = AutoModelForCausalLM.from_pretrained(
+    MODEL_NAME,
+    torch_dtype=torch.bfloat16,
+    attn_implementation="eager",
+    token=hf_token,
+    local_files_only=False
+).to("cuda")
+model.eval()
+print(f"  Device: {next(model.parameters()).device}")
+print(f"  Layers: {len(model.model.layers)}\n")
+try:
+    from rouge_score import rouge_scorer as _rs
+    _scorer = _rs.RougeScorer(['rougeL'], use_stemmer=False)
+    def compute_rouge_l(pred, ref):
+        if not pred.strip() or not ref.strip():
+            return 0.0
+        return _scorer.score(ref, pred)['rougeL'].fmeasure
+    print("ROUGE-L: rouge_score library ✓")
+except ImportError:
+    def compute_rouge_l(pred, ref):
+        p, r = pred.lower().split(), ref.lower().split()
+        m, n = len(p), len(r)
+        if not m or not n:
+            return 0.0
+        dp = [[0]*(n+1) for _ in range(m+1)]
+        for i in range(1, m+1):
+            for j in range(1, n+1):
+                dp[i][j] = dp[i-1][j-1]+1 if p[i-1]==r[j-1] else max(dp[i-1][j], dp[i][j-1])
+        lcs = dp[m][n]
+        pr = lcs/m; rc = lcs/n
+        return 2*pr*rc/(pr+rc) if pr+rc else 0.0
+    print("ROUGE-L: manual LCS ✓")
+def apply_h2o(model, budget_ratio=0.2, recent_ratio=0.1, cache_size=CACHE_SIZE, strategy="per_head"):
+    num_layers    = len(model.model.layers)
+    acc_scores    = [None] * num_layers
+    step_counter  = [0]
+    TOTAL_BUDGET  = max(16, int(cache_size * budget_ratio))
+    RECENT_BUDGET = max(8,  int(cache_size * recent_ratio))
+    HH_BUDGET     = TOTAL_BUDGET - RECENT_BUDGET
+    NUM_Q_HEADS  = 32
+    NUM_KV_HEADS = 8
+    GQA_GROUP    = NUM_Q_HEADS // NUM_KV_HEADS
+    print(
+        f"H2O Strategy={strategy} | Total Budget: {TOTAL_BUDGET} | "
+        f"HH: {HH_BUDGET} | Recent: {RECENT_BUDGET}"
+    )
+    def reset_scores():
+        for li in range(num_layers):
+            acc_scores[li] = None
+        step_counter[0] = 0
+    def make_patched_forward(orig, li):
+        def patched_forward(self, hidden_states, **kwargs):
+            kwargs["output_attentions"] = True
+            out = orig(hidden_states, **kwargs)
+            attn_w = out[1] if isinstance(out, tuple) else getattr(out, "attentions", None)
+            if attn_w is not None:
+                raw_score = attn_w.float().mean(dim=2)[0]
+                score = raw_score.view(NUM_KV_HEADS, GQA_GROUP, -1).mean(dim=1)
+                score_gpu = score.detach()
+                if acc_scores[li] is None:
+                    acc_scores[li] = score_gpu
+                else:
+                    cur_len = acc_scores[li].shape[1]
+                    new_len = score_gpu.shape[1]
+                    if new_len > cur_len:
+                        pad = torch.zeros(NUM_KV_HEADS, new_len - cur_len, device=score_gpu.device)
+                        acc_scores[li] = torch.cat([acc_scores[li], pad], dim=1)
+                    acc_scores[li][:, :new_len] += score_gpu
+            if isinstance(out, tuple):
+                return (out[0], None) + out[2:]
+            return out
+        return patched_forward
+    for layer_idx, layer in enumerate(model.model.layers):
+        attn = layer.self_attn
+        attn.forward = types.MethodType(make_patched_forward(attn.forward, layer_idx), attn)
+    def eviction_hook(module, input, output):
+        past_kv = getattr(output, "past_key_values", None)
+        if past_kv is None or not hasattr(past_kv, 'layers'):
+            return output
+        for li in range(len(past_kv.layers)):
+            if acc_scores[li] is None:
+                continue
+            k = past_kv.layers[li].keys
+            v = past_kv.layers[li].values
+            bsz, n_heads, seq_len, head_dim = k.shape
+            if seq_len <= TOTAL_BUDGET:
+                continue
+            device       = k.device
+            recent_start = seq_len - RECENT_BUDGET
+            scores       = acc_scores[li]
+            old_scores   = scores[:, :recent_start]
+            if strategy == "layer_shared":
+                shared_scores = old_scores.mean(dim=0)
+                shared_hh_idx = shared_scores.topk(HH_BUDGET).indices
+                hh_idx = shared_hh_idx.unsqueeze(0).expand(n_heads, -1)
+            else:
+                hh_idx = old_scores.topk(HH_BUDGET, dim=1).indices
+            recent_idx = torch.arange(recent_start, seq_len, device=device).unsqueeze(0).expand(n_heads, -1)
+            keep_idx, _ = torch.cat([hh_idx, recent_idx], dim=1).sort(dim=1)
+            gather_idx = keep_idx.unsqueeze(0).unsqueeze(-1).expand(bsz, -1, -1, head_dim)
+            past_kv.layers[li].keys   = torch.gather(k, 2, gather_idx)
+            past_kv.layers[li].values = torch.gather(v, 2, gather_idx)
+            acc_scores[li] = torch.gather(scores, 1, keep_idx)
+        return output
+    model_hook = model.model.register_forward_hook(eviction_hook)
+    print(f"H2O applied ({strategy}): {num_layers} layers patched.")
+    return model_hook, reset_scores
+def remove_h2o(model_hook):
+    model_hook.remove()
+    print("Eviction hook removed")
+
+def apply_random(model, budget_ratio=0.2, cache_size=CACHE_SIZE):
+    """Random eviction baseline: randomly keeps TOTAL_BUDGET tokens from cache."""
+    num_layers    = len(model.model.layers)
+    TOTAL_BUDGET  = max(16, int(cache_size * budget_ratio))
+    
+    print(
+        f"Random Eviction (baseline) | Total Budget: {TOTAL_BUDGET} tokens (random selection)"
+    )
+    
+    def reset_scores():
+        pass  # No scores to track for random eviction
+    
+    def eviction_hook(module, input, output):
+        past_kv = getattr(output, "past_key_values", None)
+        if past_kv is None or not hasattr(past_kv, 'layers'):
+            return output
+        
+        for li in range(len(past_kv.layers)):
+            k = past_kv.layers[li].keys
+            v = past_kv.layers[li].values
+            bsz, n_heads, seq_len, head_dim = k.shape
+            
+            if seq_len <= TOTAL_BUDGET:
+                continue
+            
+            device = k.device
+            
+            # Randomly select TOTAL_BUDGET tokens from all positions
+            all_positions = torch.arange(0, seq_len, device=device)
+            perm = torch.randperm(seq_len, device=device)[:TOTAL_BUDGET]
+            keep_idx = all_positions[perm].unsqueeze(0).expand(n_heads, -1)
+            
+            # Sort indices to maintain order
+            keep_idx, _ = keep_idx.sort(dim=1)
+            
+            gather_idx = keep_idx.unsqueeze(0).unsqueeze(-1).expand(bsz, -1, -1, head_dim)
+            past_kv.layers[li].keys   = torch.gather(k, 2, gather_idx)
+            past_kv.layers[li].values = torch.gather(v, 2, gather_idx)
+        
+        return output
+    
+    model_hook = model.model.register_forward_hook(eviction_hook)
+    print(f"Random eviction applied: {num_layers} layers patched.")
+    return model_hook, reset_scores
+
+def remove_h2o(model_hook):
+    model_hook.remove()
+def visualize_and_log(model, tokenizer, sample, kv_mode, kv_cfg,
+                      cache_size, max_seq_len, prefix="viz"):
+    import matplotlib
+    matplotlib.use('Agg')
+    import matplotlib.pyplot as plt
+    import numpy as np
+    text    = sample["article"]
+    inputs  = tokenizer(
+        f"Summarize this article in 2-3 sentences:\n\nArticle: {text}\n\nSummary:",
+        return_tensors="pt", truncation=True, max_length=max_seq_len
+    ).to(model.device)
+    seq_len = inputs["input_ids"].shape[1]
+    tokens  = tokenizer.convert_ids_to_tokens(inputs["input_ids"][0])
+    MAX_SHOW = seq_len
+    tokens   = [t.replace('▁', '_') for t in tokens[:MAX_SHOW]]
+    all_attn  = {}
+    pre_hooks = []
+    for li, layer in enumerate(model.model.layers):
+        attn_module = layer.self_attn
+        def make_pre_hook(idx, mod):
+            def pre_hook(module, args, kwargs):
+                if len(args) > 0:
+                    hidden_states = args[0]
+                elif "hidden_states" in kwargs:
+                    hidden_states = kwargs["hidden_states"]
+                else:
+                    return
+                try:
+                    with torch.no_grad():
+                        raw_out = type(mod).forward(mod, hidden_states, output_attentions=True)
+                    if isinstance(raw_out, tuple) and raw_out[1] is not None:
+                        all_attn[idx] = raw_out[1][0].float().cpu().detach().numpy()
+                except Exception:
+                    pass
+            return pre_hook
+        h = attn_module.register_forward_pre_hook(
+            make_pre_hook(li, attn_module), with_kwargs=True
+        )
+        pre_hooks.append(h)
+    t0 = time.time()
+    with torch.no_grad():
+        model(**inputs)
+    prefill_latency = time.time() - t0
+    for h in pre_hooks:
+        h.remove()
+    if not all_attn:
+        print("  [WARNING] Could not capture attention weights — skipping visualization.")
+        return
+    if kv_cfg["h2o"]:
+        TOTAL_BUDGET  = cache_size
+        RECENT_BUDGET = max(8, int(cache_size * kv_cfg["recent_ratio"]))
+        HH_BUDGET     = TOTAL_BUDGET - RECENT_BUDGET
+    elif kv_cfg.get("random", False):
+        TOTAL_BUDGET  = max(16, int(cache_size * kv_cfg["budget_ratio"]))
+        RECENT_BUDGET = 0
+        HH_BUDGET     = 0
+    else:
+        TOTAL_BUDGET  = seq_len
+        RECENT_BUDGET = seq_len
+        HH_BUDGET     = 0
+    rec_start = max(0, seq_len - RECENT_BUDGET) if RECENT_BUDGET > 0 else 0
+    def compute_mask(mat):
+        ks   = mat.mean(axis=0).mean(axis=0)[:seq_len]
+        mask = np.zeros(seq_len, dtype=int)
+        if kv_cfg["h2o"]:
+            mask[rec_start:] = 2
+            if HH_BUDGET > 0 and rec_start > 0:
+                top_idx = np.argsort(ks[:rec_start])[-HH_BUDGET:]
+                mask[top_idx] = 1
+        elif kv_cfg.get("random", False):
+            # For random: don't show partition, just show eviction budget
+            pass
+        else:
+            mask[:] = 2
+        return mask, ks
+    num_layers = len(all_attn)
+    selected   = sorted(set([0, num_layers//4, num_layers//2, 3*num_layers//4, num_layers-1]))
+    torch.cuda.synchronize()
+    mem_allocated_mb = torch.cuda.memory_allocated() / 1024**2
+    mem_reserved_mb  = torch.cuda.memory_reserved()  / 1024**2
+    csv_path = f"{prefix}_metrics.csv"
+    csv_rows = []
+    for li in range(num_layers):
+        if li not in all_attn:
+            continue
+        mask, ks = compute_mask(all_attn[li])
+        n_evicted = int((mask == 0).sum())
+        n_hh      = int((mask == 1).sum())
+        n_recent  = int((mask == 2).sum())
+        avg_score_hh     = float(ks[mask == 1].mean()) if n_hh > 0     else 0.0
+        avg_score_recent = float(ks[mask == 2].mean()) if n_recent > 0 else 0.0
+        avg_score_evict  = float(ks[mask == 0].mean()) if n_evicted > 0 else 0.0
+        csv_rows.append({
+            "kv_mode":            kv_mode,
+            "layer":              li,
+            "seq_len":            seq_len,
+            "cache_size":         TOTAL_BUDGET,
+            "recent_budget":      RECENT_BUDGET,
+            "hh_budget":          HH_BUDGET,
+            "n_evicted":          n_evicted,
+            "n_heavy_hitter":     n_hh,
+            "n_recent":           n_recent,
+            "avg_score_hh":       round(avg_score_hh,     6),
+            "avg_score_recent":   round(avg_score_recent, 6),
+            "avg_score_evicted":  round(avg_score_evict,  6),
+            "prefill_latency_s":  round(prefill_latency,  4),
+            "mem_allocated_mb":   round(mem_allocated_mb, 2),
+            "mem_reserved_mb":    round(mem_reserved_mb,  2),
+        })
+    if not csv_rows:
+        print("  [WARNING] csv_rows empty — skipping CSV/plots.")
+        return
+    with open(csv_path, "w", newline="") as f:
+        writer = csv.DictWriter(f, fieldnames=csv_rows[0].keys())
+        writer.writeheader()
+        writer.writerows(csv_rows)
+    print(f"  CSV saved: {csv_path}")
+    for li in selected:
+        if li not in all_attn:
+            continue
+        w         = all_attn[li]
+        n_heads   = w.shape[0]
+        w_show    = w[:, :MAX_SHOW, :MAX_SHOW]
+        mask, _   = compute_mask(all_attn[li])
+        mask_show = mask[:MAX_SHOW]
+        ncols = 4
+        nrows = (n_heads + ncols - 1) // ncols
+        fig, axes = plt.subplots(nrows, ncols, figsize=(ncols*4, nrows*3.5))
+        fig.suptitle(
+            f"[{kv_mode}] Attention heads — Layer {li}  "
+            f"seq={seq_len}  cache={TOTAL_BUDGET}  recent={RECENT_BUDGET}  HH={HH_BUDGET}",
+            fontsize=11, fontweight='bold'
+        )
+        cmap_overlay = {0: [1,0,0,0.4], 1: [0,1,0,0.35], 2: [0,0.5,1,0.25]}
+        for hi in range(n_heads):
+            ax = axes.flatten()[hi]
+            im = ax.imshow(w_show[hi], aspect='auto', cmap='hot',
+                           interpolation='nearest', vmin=0)
+            overlay = np.zeros((MAX_SHOW, MAX_SHOW, 4))
+            for k in range(MAX_SHOW):
+                overlay[:, k] = cmap_overlay[mask_show[k]]
+            ax.imshow(overlay, aspect='auto', interpolation='nearest')
+            ax.set_title(f"Head {hi}", fontsize=8)
+            tick_step = max(1, MAX_SHOW // 8)
+            ticks = list(range(0, MAX_SHOW, tick_step))
+            ax.set_xticks(ticks); ax.set_xticklabels(ticks, fontsize=6)
+            ax.set_yticks(ticks); ax.set_yticklabels(ticks, fontsize=6)
+            plt.colorbar(im, ax=ax, fraction=0.046, pad=0.04)
+        for hi in range(n_heads, nrows*ncols):
+            axes.flatten()[hi].axis('off')
+        from matplotlib.patches import Patch
+        fig.legend(handles=[
+            Patch(facecolor='red',   alpha=0.4,  label='Evicted'),
+            Patch(facecolor='green', alpha=0.35, label='Heavy Hitter'),
+            Patch(facecolor='blue',  alpha=0.25, label='Recent'),
+        ], loc='lower center', ncol=3, fontsize=9, bbox_to_anchor=(0.5, 0.0))
+        plt.tight_layout(rect=[0, 0.04, 1, 1])
+        p = f"{prefix}_layer{li}_heads.png"
+        plt.savefig(p, dpi=150, bbox_inches='tight')
+        plt.close()
+        print(f"  Saved: {p}")
+    for li in selected:
+        if li not in all_attn:
+            continue
+        mask, ks  = compute_mask(all_attn[li])
+        ks_show   = ks[:seq_len]
+        mask_show = mask[:seq_len]
+        cmap_bar = {0: 'red', 1: 'limegreen', 2: 'steelblue'}
+        fig, ax = plt.subplots(figsize=(18, 4))
+        ax.bar(np.arange(seq_len), ks_show,
+               color=[cmap_bar[mask_show[i]] for i in range(seq_len)],
+               width=1.0, alpha=0.85)
+        ax.set_yscale('log')
+        ax.axvline(x=rec_start - 0.5, color='cyan', lw=2, linestyle='--', label='Recent boundary')
+        if HH_BUDGET > 0 and rec_start > 0:
+            threshold = np.sort(ks[:rec_start])[-HH_BUDGET] if HH_BUDGET <= rec_start else 0
+            ax.axhline(y=threshold, color='orange', lw=1.5, linestyle=':', label='HH threshold')
+        ax.set_title(
+            f"[{kv_mode}] Accumulated key scores — Layer {li}  "
+            f"seq={seq_len}  cache={TOTAL_BUDGET}",
+            fontsize=11, fontweight='bold'
+        )
+        ax.set_xlabel("Token index")
+        ax.set_ylabel("Accumulated attention score")
+        tick_pos = list(range(0, seq_len, max(1, seq_len//16)))
+        ax.set_xticks(tick_pos); ax.set_xticklabels(tick_pos, fontsize=7)
+        ax.set_xlim(-1, seq_len)
+        from matplotlib.patches import Patch
+        from matplotlib.lines import Line2D
+        ax.legend(handles=[
+            Patch(facecolor='red',       alpha=0.85, label='Evicted'),
+            Patch(facecolor='limegreen', alpha=0.85, label='Heavy Hitter'),
+            Patch(facecolor='steelblue', alpha=0.85, label='Recent'),
+            Line2D([0],[0], color='cyan',   lw=2,   linestyle='--', label='Recent boundary'),
+            Line2D([0],[0], color='orange', lw=1.5, linestyle=':',  label='HH threshold'),
+        ], fontsize=8)
+        plt.tight_layout()
+        p = f"{prefix}_layer{li}_scores.png"
+        plt.savefig(p, dpi=150, bbox_inches='tight')
+        plt.close()
+        print(f"  Saved: {p}")
+    print(f"  prefill_latency: {prefill_latency:.4f}s")
+    print(f"  mem_allocated:   {mem_allocated_mb:.1f} MB")
+    print(f"  mem_reserved:    {mem_reserved_mb:.1f} MB")
+model_hook   = None
+reset_scores = None
+if kv_cfg["h2o"]:
+    model_hook, reset_scores = apply_h2o(
+        model,
+        budget_ratio=kv_cfg["budget_ratio"],
+        recent_ratio=kv_cfg["recent_ratio"],
+        strategy=H2O_STRATEGY,
+    )
+elif kv_cfg.get("random", False):
+    model_hook, reset_scores = apply_random(
+        model,
+        budget_ratio=kv_cfg["budget_ratio"],
+    )
+else:
+    print(f"KV Mode: full cache — no eviction\n")
+print("Quick test on 1 sample...")
+_s      = ds[SPLIT][0]
+_prompt = f"Summarize this article in 2-3 sentences:\n\nArticle: {_s['article']}\n\nSummary:"
+_inp    = tokenizer(_prompt, return_tensors="pt", truncation=True,
+                    max_length=MAX_SEQ_LEN).to(model.device)
+if reset_scores is not None:
+    reset_scores()
+with torch.no_grad():
+    _out = model.generate(
+        _inp["input_ids"],
+        attention_mask=_inp["attention_mask"],
+        max_new_tokens=100,
+        do_sample=False,
+        temperature=1.0,
+        top_p=1.0,
+        pad_token_id=tokenizer.eos_token_id,
+    )
+_pred = tokenizer.decode(_out[0][_inp["input_ids"].shape[1]:], skip_special_tokens=True).strip()
+_rouge = compute_rouge_l(_pred, _s["highlights"])
+print(f"  Reference:  {_s['highlights'][:80]}...")
+print(f"  Prediction: {_pred[:80]}...")
+print(f"  Prediction raw: '{_pred}'")
+print(f"  ROUGE-L:    {_rouge:.4f}  ✓\n")
+print("Generating visualizations...")
+visualize_and_log(
+    model, tokenizer,
+    sample      = ds[SPLIT][0],
+    kv_mode     = KV_MODE,
+    kv_cfg      = kv_cfg,
+    cache_size  = CACHE_SIZE,
+    max_seq_len = MAX_SEQ_LEN,
+    prefix      = f"viz_{KV_MODE}_{H2O_STRATEGY}",
+)
+OUTPUT_FILE     = f"cnn_dailymail_{KV_MODE}_{H2O_STRATEGY}_{SPLIT}_{NUM_SAMPLES}.json"
+CHECKPOINT_FILE = f"checkpoint_{KV_MODE}_{H2O_STRATEGY}_{SPLIT}.json"
+SAVE_EVERY      = 100
+print(f"{'='*60}")
+print(f"GENERATION START")
+print(f"  Output:     {OUTPUT_FILE}")
+print(f"  Checkpoint: every {SAVE_EVERY} samples")
+print(f"  Total:      {NUM_SAMPLES} samples")
+print(f"{'='*60}\n")
+new_dataset = []
+start_idx   = 0
+if Path(CHECKPOINT_FILE).exists():
+    with open(CHECKPOINT_FILE) as f:
+        new_dataset = json.load(f)
+    start_idx = len(new_dataset)
+    print(f"Resuming from checkpoint: {start_idx}/{NUM_SAMPLES}\n")
+start_time = datetime.datetime.now()
+for idx in tqdm(range(start_idx, NUM_SAMPLES), desc=f"[{KV_MODE}|{H2O_STRATEGY}]"):
+    if reset_scores is not None:
+        reset_scores()
+    sample    = ds[SPLIT][idx]
+    article   = sample["article"]
+    reference = sample["highlights"]
+    sample_id = sample["id"]
+    prompt = f"Summarize this article in 2-3 sentences:\n\nArticle: {article}\n\nSummary:"
+    inputs = tokenizer(prompt, return_tensors="pt",
+                       truncation=True, max_length=MAX_SEQ_LEN).to(model.device)
+    torch.cuda.synchronize()
+    mem_before_mb = torch.cuda.memory_allocated() / 1024**2
+    t_start       = time.time()
+    with torch.no_grad():
+        outputs = model.generate(
+            inputs["input_ids"],
+            attention_mask=inputs["attention_mask"],
+            max_new_tokens=100,
+            do_sample=False,
+            temperature=1.0,
+            top_p=1.0,
+            pad_token_id=tokenizer.eos_token_id,
+        )
+    torch.cuda.synchronize()
+    latency_s    = time.time() - t_start
+    mem_after_mb = torch.cuda.memory_allocated() / 1024**2
+    mem_peak_mb  = torch.cuda.max_memory_allocated() / 1024**2
+    torch.cuda.reset_peak_memory_stats()
+    prediction    = tokenizer.decode(outputs[0][inputs["input_ids"].shape[1]:], skip_special_tokens=True).strip()
+    rouge         = compute_rouge_l(prediction, reference)
+    output_tokens = outputs[0].shape[0] - inputs["input_ids"].shape[1]
+    if idx % 100 == 0:
+        elapsed = max(1, (datetime.datetime.now() - start_time).seconds)
+        rate    = max(1, idx - start_idx) / elapsed
+        remain  = (NUM_SAMPLES - idx) / rate / 3600
+        print(f"\n[{idx}/{NUM_SAMPLES}] tokens={inputs['input_ids'].shape[1]} | "
+              f"speed={rate:.1f}/s | ETA={remain:.1f}h")
+        print(f"  Ref:     {reference[:80]}...")
+        print(f"  Pred:    {prediction[:80]}...")
+        print(f"  ROUGE-L: {rouge:.4f}")
+        print(f"  Latency: {latency_s:.2f}s | mem_peak: {mem_peak_mb:.1f}MB")
+    new_dataset.append({
+        "id":            sample_id,
+        "article":       article,
+        "highlights":    reference,
+        "prediction":    prediction,
+        "rouge_l":       float(rouge),
+        "input_tokens":  inputs["input_ids"].shape[1],
+        "output_tokens": output_tokens,
+        "latency_s":     round(latency_s, 4),
+        "mem_before_mb": round(mem_before_mb, 2),
+        "mem_after_mb":  round(mem_after_mb, 2),
+        "mem_peak_mb":   round(mem_peak_mb, 2),
+        "kv_mode":       KV_MODE,
+        "h2o_strategy":  H2O_STRATEGY,
+        "cache_size":    CACHE_SIZE,
+        "budget_ratio":  kv_cfg["budget_ratio"],
+        "recent_ratio":  kv_cfg["recent_ratio"],
+    })
+    if (idx + 1) % SAVE_EVERY == 0:
+        with open(CHECKPOINT_FILE, "w") as f:
+            json.dump(new_dataset, f, ensure_ascii=False)
+        print(f"  [Checkpoint: {idx+1}/{NUM_SAMPLES}]")
+if not new_dataset:
+    print("No samples were processed. Exiting without summary.")
+    if model_hook:
+        remove_h2o(model_hook)
+    sys.exit(0)
+avg_rouge  = sum(d["rouge_l"]      for d in new_dataset) / len(new_dataset)
+avg_tokens = sum(d["input_tokens"] for d in new_dataset) / len(new_dataset)
+elapsed_h  = (datetime.datetime.now() - start_time).seconds / 3600
+print(f"\n{'='*60}")
+print(f"DONE — KV Mode: {KV_MODE}  Strategy: {H2O_STRATEGY}")
+print(f"  Samples:    {len(new_dataset)}")
+print(f"  ROUGE-L:    {avg_rouge:.4f}  "
+      f"(min={min(d['rouge_l'] for d in new_dataset):.4f}  "
+      f"max={max(d['rouge_l'] for d in new_dataset):.4f})")
+print(f"  Avg tokens: {avg_tokens:.0f}")
+print(f"  Elapsed:    {elapsed_h:.2f}h")
+print(f"{'='*60}\n")
+with open(OUTPUT_FILE, "w", encoding="utf-8") as f:
+    json.dump({
+        "metadata": {
+            "model":            MODEL_NAME,
+            "dataset":          "cnn_dailymail 3.0.0",
+            "split":            SPLIT,
+            "kv_mode":          KV_MODE,
+            "h2o_strategy":     H2O_STRATEGY,
+            "budget_ratio":     kv_cfg["budget_ratio"],
+            "recent_ratio":     kv_cfg["recent_ratio"],
+            "num_samples":      len(new_dataset),
+            "avg_rouge_l":      round(avg_rouge, 4),
+            "avg_input_tokens": round(avg_tokens, 0),
+            "elapsed_hours":    round(elapsed_h, 2),
+        },
+        "data": new_dataset,
+    }, f, indent=2, ensure_ascii=False)
+Path(CHECKPOINT_FILE).unlink(missing_ok=True)
+print(f"Saved: {OUTPUT_FILE}  ({Path(OUTPUT_FILE).stat().st_size/1024/1024:.1f} MB)")
+print(f"All done! {datetime.datetime.now()}")
+csv_path   = OUTPUT_FILE.replace(".json", ".csv")
+csv_fields = ["id", "kv_mode", "h2o_strategy", "cache_size", "budget_ratio", "recent_ratio",
+              "input_tokens", "output_tokens", "rouge_l",
+              "latency_s", "mem_before_mb", "mem_after_mb", "mem_peak_mb"]
+if new_dataset:
+    with open(csv_path, "w", newline="") as f:
+        writer = csv.DictWriter(f, fieldnames=csv_fields, extrasaction="ignore")
+        writer.writeheader()
+        writer.writerows(new_dataset)
+    print(f"CSV saved: {csv_path}")
+else:
+    print(f"No data to write to CSV: {csv_path}")
+if model_hook:
+    remove_h2o(model_hook)
