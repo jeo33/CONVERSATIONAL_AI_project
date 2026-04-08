@@ -34,9 +34,6 @@ if torch.cuda.is_available():
     print(f"GPU: {torch.cuda.get_device_name(0)}")
 def parse_args():
     parser = argparse.ArgumentParser(description="H2O KV cache evaluation")
-    parser.add_argument("--dataset", type=str, default="cnn_dailymail",
-                        choices=["cnn_dailymail", "gov_report", "qmsum", "vcsum"],
-                        help="Dataset to evaluate on (default: cnn_dailymail)")
     parser.add_argument("--num-samples", type=int, required=True,
                         help="Required. Number of samples to evaluate. Use -1 for full split.")
     parser.add_argument("--split", type=str, required=True,
@@ -46,19 +43,12 @@ def parse_args():
     parser.add_argument("--h2o-strategy", type=str, required=True,
                         choices=["per_head", "layer_shared"],
                         help="Required. H2O heavy-hitter strategy")
-    parser.add_argument("--max-seq-len", type=int, default=None,
-                        help="Override max sequence length (default: dataset-specific)")
-    parser.add_argument("--cache-size", type=int, default=None,
-                        help="Override KV cache size (default: dataset-specific)")
     return parser.parse_args()
 args = parse_args()
 NUM_SAMPLES_ARG = args.num_samples
 SPLIT_ARG = args.split
 KV_MODE_ARG = args.kv_mode
 H2O_STRATEGY = args.h2o_strategy
-DATASET_ARG = args.dataset
-MAX_SEQ_LEN_OVERRIDE = args.max_seq_len
-CACHE_SIZE_OVERRIDE = args.cache_size
 VALID_H2O_STRATEGIES = {"per_head", "layer_shared"}
 if H2O_STRATEGY not in VALID_H2O_STRATEGIES:
     print(f"ERROR: Unknown H2O_STRATEGY '{H2O_STRATEGY}'. Choose: {sorted(VALID_H2O_STRATEGIES)}")
@@ -67,6 +57,8 @@ SPLIT    = SPLIT_ARG   or os.environ.get("SPLIT",    "validation")
 KV_MODE  = KV_MODE_ARG or os.environ.get("KV_MODE",  "full")
 MODEL_NAME  = os.environ.get("MODEL", "meta-llama/Llama-3.2-1B-Instruct")
 HF_TOKEN    = hf_token
+MAX_SEQ_LEN = 4096
+CACHE_SIZE  = 512
 KV_CONFIGS = {
     "full":          {"h2o": False, "random": False, "budget_ratio": 1.0, "recent_ratio": 1.0 },
     "random_b1":     {"h2o": False, "random": True,  "budget_ratio": 0.1, "recent_ratio": 0.1 },
@@ -117,82 +109,7 @@ KV_CONFIGS = {
 if KV_MODE not in KV_CONFIGS:
     print(f"ERROR: Unknown KV_MODE '{KV_MODE}'. Choose: {list(KV_CONFIGS.keys())}")
     sys.exit(1)
-
-def load_dataset_config(dataset_name):
-    """Load dataset and configuration based on dataset name.
-    
-    Each dataset config includes:
-    - loader: function to load the dataset
-    - text_field: field name for input text
-    - summary_field: field name for reference summary/answers
-    - id_field: field name for sample ID
-    - prompt_template: prompt format with {text} placeholder
-    - task_type: 'summarization' or 'qa'
-    - max_seq_len: maximum sequence length for this dataset
-    - cache_size: KV cache maximum size for this dataset
-    """
-    configs = {
-        "cnn_dailymail": {
-            "loader": lambda: load_dataset("cnn_dailymail", "3.0.0"),
-            "text_field": "article",
-            "summary_field": "highlights",
-            "id_field": "id",
-            "prompt_template": "Summarize this article in 2-3 sentences:\n\nArticle: {text}\n\nSummary:",
-            "task_type": "summarization",
-            "max_seq_len": 3000,  # Practical limit for 1B model on 80GB GPU
-            "cache_size": 512,
-        },
-        "gov_report": {
-            "loader": lambda: load_dataset("THUDM/LongBench", "gov_report"),
-            "text_field": "context",
-            "summary_field": "answers",
-            "id_field": "_id",
-            "prompt_template": "Summarize the government report in 2-3 sentences:\n\nDocument: {text}\n\nSummary:",
-            "task_type": "summarization",
-            "max_seq_len": 3000,  # Long-context dataset, but GPU-memory constrained
-            "cache_size": 512,
-        },
-        "qmsum": {
-            "loader": lambda: load_dataset("THUDM/LongBench", "qmsum"),
-            "text_field": "context",
-            "summary_field": "answers",
-            "id_field": "_id",
-            "prompt_template": "Summarize the meeting in 2-3 sentences:\n\nTranscript: {text}\n\nSummary:",
-            "task_type": "summarization",
-            "max_seq_len": 3000,  # Long-context dataset, but GPU-memory constrained
-            "cache_size": 512,
-        },
-        "vcsum": {
-            "loader": lambda: load_dataset("THUDM/LongBench", "vcsum"),
-            "text_field": "context",
-            "summary_field": "answers",
-            "id_field": "_id",
-            "prompt_template": "Summarize this video content in 2-3 sentences:\n\nTranscript: {text}\n\nSummary:",
-            "task_type": "summarization",
-            "max_seq_len": 3000,  # Long-context dataset, but GPU-memory constrained
-            "cache_size": 512,
-        },
-    }
-    
-    if dataset_name not in configs:
-        print(f"ERROR: Unknown dataset '{dataset_name}'. Choose: {list(configs.keys())}")
-        sys.exit(1)
-    
-    return configs[dataset_name]
-
 kv_cfg = KV_CONFIGS[KV_MODE]
-dataset_cfg = load_dataset_config(DATASET_ARG)
-
-# Extract dataset-specific sequence length and cache size
-MAX_SEQ_LEN = dataset_cfg["max_seq_len"]
-CACHE_SIZE = dataset_cfg["cache_size"]
-
-# Apply command-line overrides if provided
-if MAX_SEQ_LEN_OVERRIDE is not None:
-    MAX_SEQ_LEN = MAX_SEQ_LEN_OVERRIDE
-if CACHE_SIZE_OVERRIDE is not None:
-    CACHE_SIZE = CACHE_SIZE_OVERRIDE
-
 print(f"{'='*60}")
 print(f"Script started:  {datetime.datetime.now()}")
 print(f"PyTorch:         {torch.__version__}")
@@ -202,16 +119,13 @@ if torch.cuda.is_available():
     print(f"GPU Memory:      {torch.cuda.get_device_properties(0).total_memory/1024**3:.1f} GB")
 print(f"{'='*60}")
 print(f"Model:           {MODEL_NAME}")
-print(f"Dataset:         {DATASET_ARG}")
-print(f"  Max Seq Len:   {MAX_SEQ_LEN}")
-print(f"  Cache Size:    {CACHE_SIZE}")
 print(f"KV Mode:         {KV_MODE}  (budget={kv_cfg['budget_ratio']*100:.0f}%  recent={kv_cfg['recent_ratio']*100:.0f}%)")
 print(f"H2O Strategy:    {H2O_STRATEGY}")
 print(f"Split:           {SPLIT}")
 print(f"Samples:         {NUM_SAMPLES_ARG or 'all'}")
 print(f"{'='*60}\n")
 print("Loading dataset...")
-ds = dataset_cfg["loader"]()
+ds = load_dataset("cnn_dailymail", "3.0.0")
 NUM_SAMPLES = len(ds[SPLIT]) if NUM_SAMPLES_ARG == -1 else NUM_SAMPLES_ARG
 print(f"  {SPLIT} split → {NUM_SAMPLES} samples\n")
 print(f"Loading model: {MODEL_NAME}")
@@ -231,59 +145,16 @@ print(model.model.config)
 model.eval()
 print(f"  Device: {next(model.parameters()).device}")
 print(f"  Layers: {len(model.model.layers)}\n")
-
-def is_chinese(text):
-    """Check if text contains Chinese characters."""
-    for char in text:
-        if '\u4e00' <= char <= '\u9fff':  # CJK Unified Ideographs range
-            return True
-    return False
-
-def compute_char_level_rouge(pred, ref):
-    """Compute character-level ROUGE-L (for Chinese and CJK languages)."""
-    pred_chars = list(pred.strip())
-    ref_chars = list(ref.strip())
-    m, n = len(pred_chars), len(ref_chars)
-    
-    if not m or not n:
-        return 0.0
-    
-    # Dynamic programming for LCS
-    dp = [[0] * (n + 1) for _ in range(m + 1)]
-    for i in range(1, m + 1):
-        for j in range(1, n + 1):
-            if pred_chars[i - 1] == ref_chars[j - 1]:
-                dp[i][j] = dp[i - 1][j - 1] + 1
-            else:
-                dp[i][j] = max(dp[i - 1][j], dp[i][j - 1])
-    
-    lcs_len = dp[m][n]
-    recall = lcs_len / n if n > 0 else 0.0
-    precision = lcs_len / m if m > 0 else 0.0
-    
-    if recall + precision == 0:
-        return 0.0
-    return 2 * precision * recall / (precision + recall)
-
 try:
     from rouge_score import rouge_scorer as _rs
     _scorer = _rs.RougeScorer(['rougeL'], use_stemmer=False)
     def compute_rouge_l(pred, ref):
         if not pred.strip() or not ref.strip():
             return 0.0
-        # For Chinese text, use character-level LCS instead of word-level ROUGE
-        if is_chinese(ref):
-            return compute_char_level_rouge(pred, ref)
         return _scorer.score(ref, pred)['rougeL'].fmeasure
-    print("ROUGE-L: rouge_score library ✓ (with character-level support for Chinese)")
+    print("ROUGE-L: rouge_score library ✓")
 except ImportError:
     def compute_rouge_l(pred, ref):
-        if not pred.strip() or not ref.strip():
-            return 0.0
-        # For Chinese, use character-level matching
-        if is_chinese(ref):
-            return compute_char_level_rouge(pred, ref)
-        # For English, use word-level matching
         p, r = pred.lower().split(), ref.lower().split()
         m, n = len(p), len(r)
         if not m or not n:
@@ -295,7 +166,7 @@ except ImportError:
         lcs = dp[m][n]
         pr = lcs/m; rc = lcs/n
         return 2*pr*rc/(pr+rc) if pr+rc else 0.0
-    print("ROUGE-L: manual LCS ✓ (with character-level support for Chinese)")
+    print("ROUGE-L: manual LCS ✓")
 def apply_h2o(model, budget_ratio=0.2, recent_ratio=0.1, cache_size=CACHE_SIZE, strategy="per_head"):
     num_layers    = len(model.model.layers)
     acc_scores    = [None] * num_layers
@@ -686,11 +557,7 @@ else:
     print(f"KV Mode: full cache — no eviction\n")
 print("Quick test on 1 sample...")
 _s      = ds[SPLIT][0]
-_text   = _s[dataset_cfg["text_field"]]
-_ref    = _s[dataset_cfg["summary_field"]]
-# Handle both list and string reference formats
-_ref_str = _ref[0] if isinstance(_ref, list) and _ref else str(_ref)
-_prompt = dataset_cfg["prompt_template"].format(text=_text)
+_prompt = f"Summarize this article in 2-3 sentences:\n\nArticle: {_s['article']}\n\nSummary:"
 _inp    = tokenizer(_prompt, return_tensors="pt", truncation=True,
                     max_length=MAX_SEQ_LEN).to(model.device)
 if reset_scores is not None:
@@ -699,33 +566,30 @@ with torch.no_grad():
     _out = model.generate(
         _inp["input_ids"],
         attention_mask=_inp["attention_mask"],
-        max_new_tokens=50,
+        max_new_tokens=100,
         do_sample=False,
         temperature=1.0,
         top_p=1.0,
         pad_token_id=tokenizer.eos_token_id,
     )
 _pred = tokenizer.decode(_out[0][_inp["input_ids"].shape[1]:], skip_special_tokens=True).strip()
-_rouge = compute_rouge_l(_pred, _ref_str)
-print(f"  Reference:  {_ref_str[:80]}...")
+_rouge = compute_rouge_l(_pred, _s["highlights"])
+print(f"  Reference:  {_s['highlights'][:80]}...")
 print(f"  Prediction: {_pred[:80]}...")
 print(f"  Prediction raw: '{_pred}'")
 print(f"  ROUGE-L:    {_rouge:.4f}  ✓\n")
 print("Generating visualizations...")
-_test_sample = ds[SPLIT][0]
-_test_text = _test_sample[dataset_cfg["text_field"]]
-_test_prompt = dataset_cfg["prompt_template"].format(text=_test_text)
 visualize_and_log(
     model, tokenizer,
-    sample      = {"article": _test_text, "highlights": _test_sample[dataset_cfg["summary_field"]]},
+    sample      = ds[SPLIT][0],
     kv_mode     = KV_MODE,
     kv_cfg      = kv_cfg,
     cache_size  = CACHE_SIZE,
     max_seq_len = MAX_SEQ_LEN,
-    prefix      = f"viz_{DATASET_ARG}_{KV_MODE}_{H2O_STRATEGY}",
+    prefix      = f"viz_{KV_MODE}_{H2O_STRATEGY}",
 )
-OUTPUT_FILE     = f"{DATASET_ARG}_{KV_MODE}_{H2O_STRATEGY}_{SPLIT}_{NUM_SAMPLES}.json"
-CHECKPOINT_FILE = f"checkpoint_{DATASET_ARG}_{KV_MODE}_{H2O_STRATEGY}_{SPLIT}.json"
+OUTPUT_FILE     = f"cnn_dailymail_{KV_MODE}_{H2O_STRATEGY}_{SPLIT}_{NUM_SAMPLES}.json"
+CHECKPOINT_FILE = f"checkpoint_{KV_MODE}_{H2O_STRATEGY}_{SPLIT}.json"
 SAVE_EVERY      = 100
 print(f"{'='*60}")
 print(f"GENERATION START")
@@ -745,12 +609,10 @@ for idx in tqdm(range(start_idx, NUM_SAMPLES), desc=f"[{KV_MODE}|{H2O_STRATEGY}]
     if reset_scores is not None:
         reset_scores()
     sample    = ds[SPLIT][idx]
-    text      = sample[dataset_cfg["text_field"]]
-    reference = sample[dataset_cfg["summary_field"]]
-    # Handle both list and string reference formats
-    reference_str = reference[0] if isinstance(reference, list) and reference else str(reference)
-    sample_id = sample.get(dataset_cfg["id_field"], idx)
-    prompt = dataset_cfg["prompt_template"].format(text=text)
+    article   = sample["article"]
+    reference = sample["highlights"]
+    sample_id = sample["id"]
+    prompt = f"Summarize this article in 2-3 sentences:\n\nArticle: {article}\n\nSummary:"
     inputs = tokenizer(prompt, return_tensors="pt",
                        truncation=True, max_length=MAX_SEQ_LEN).to(model.device)
     torch.cuda.synchronize()
@@ -760,7 +622,7 @@ for idx in tqdm(range(start_idx, NUM_SAMPLES), desc=f"[{KV_MODE}|{H2O_STRATEGY}]
         outputs = model.generate(
             inputs["input_ids"],
             attention_mask=inputs["attention_mask"],
-            max_new_tokens=50,
+            max_new_tokens=100,
             do_sample=False,
             temperature=1.0,
             top_p=1.0,
@@ -772,7 +634,7 @@ for idx in tqdm(range(start_idx, NUM_SAMPLES), desc=f"[{KV_MODE}|{H2O_STRATEGY}]
     mem_peak_mb  = torch.cuda.max_memory_allocated() / 1024**2
     torch.cuda.reset_peak_memory_stats()
     prediction    = tokenizer.decode(outputs[0][inputs["input_ids"].shape[1]:], skip_special_tokens=True).strip()
-    rouge         = compute_rouge_l(prediction, reference_str)
+    rouge         = compute_rouge_l(prediction, reference)
     output_tokens = outputs[0].shape[0] - inputs["input_ids"].shape[1]
     if idx % 100 == 0:
         elapsed = max(1, (datetime.datetime.now() - start_time).seconds)
@@ -780,14 +642,14 @@ for idx in tqdm(range(start_idx, NUM_SAMPLES), desc=f"[{KV_MODE}|{H2O_STRATEGY}]
         remain  = (NUM_SAMPLES - idx) / rate / 3600
         print(f"\n[{idx}/{NUM_SAMPLES}] tokens={inputs['input_ids'].shape[1]} | "
               f"speed={rate:.1f}/s | ETA={remain:.1f}h")
-        print(f"  Ref:     {reference_str[:80]}...")
+        print(f"  Ref:     {reference[:80]}...")
         print(f"  Pred:    {prediction[:80]}...")
         print(f"  ROUGE-L: {rouge:.4f}")
         print(f"  Latency: {latency_s:.2f}s | mem_peak: {mem_peak_mb:.1f}MB")
     new_dataset.append({
         "id":            sample_id,
-        "text":          text,
-        "reference":     reference_str,
+        "article":       article,
+        "highlights":    reference,
         "prediction":    prediction,
         "rouge_l":       float(rouge),
         "input_tokens":  inputs["input_ids"].shape[1],
@@ -815,7 +677,7 @@ avg_rouge  = sum(d["rouge_l"]      for d in new_dataset) / len(new_dataset)
 avg_tokens = sum(d["input_tokens"] for d in new_dataset) / len(new_dataset)
 elapsed_h  = (datetime.datetime.now() - start_time).seconds / 3600
 print(f"\n{'='*60}")
-print(f"DONE — Dataset: {DATASET_ARG}  KV Mode: {KV_MODE}  Strategy: {H2O_STRATEGY}")
+print(f"DONE — KV Mode: {KV_MODE}  Strategy: {H2O_STRATEGY}")
 print(f"  Samples:    {len(new_dataset)}")
 print(f"  ROUGE-L:    {avg_rouge:.4f}  "
       f"(min={min(d['rouge_l'] for d in new_dataset):.4f}  "
@@ -827,7 +689,7 @@ with open(OUTPUT_FILE, "w", encoding="utf-8") as f:
     json.dump({
         "metadata": {
             "model":            MODEL_NAME,
-            "dataset":          DATASET_ARG,
+            "dataset":          "cnn_dailymail 3.0.0",
             "split":            SPLIT,
             "kv_mode":          KV_MODE,
             "h2o_strategy":     H2O_STRATEGY,

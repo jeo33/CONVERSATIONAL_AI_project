@@ -1,5 +1,7 @@
 *.out
 *.err
+*.json
+*.csv
 __pycache__/
 *.pyc
 script/submit_all.sh
