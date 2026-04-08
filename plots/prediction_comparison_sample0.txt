@@ -1,0 +1,470 @@
+================================================================================
+SAMPLE COMPARISON  —  validation[0]  (quick-test sample from each job)
+================================================================================
+
+REFERENCE:
+  Zully Broussard decided to give a kidney to a stranger .
+
+--------------------------------------------------------------------------------
+
+CONFIG:  full  |  strategy=per_head
+ROUGE-L: 0.1714
+PREDICTION:
+  A woman named Zully Broussard selflessly donated one of her kidneys to a stranger, which sparked a chain reaction of six transplants, with her kidney being matched with a recipient who was paired with a donor. This rare and complex process, known as paired donation, uses genetic profiles to match compatible donors and recipients, and has been made possible by the use of computer programs like MatchGrid. Broussard's generosity has opened up possibilities for pairing compatible donors and recipients, and has
+--------------------------------------------------------------------------------
+
+CONFIG:  random_b1  |  strategy=per_head
+ROUGE-L: 0.0488
+PREDICTION:
+  A A A A A A A A A A A A A AA AA AA AA AA AA AA AA AA AA AA AA AA AA AA AA AA AA AA AA AA AA AA AA AA AA AA AA AA AA AA AA AA AA AA AA AA AA AA AA AA AA AA AA AA AA AA AA AA AA AA AA AA AA AA AA AA AA AA AA AA AA AA AA AA AA AA AA AA AA AA AA AA AA AA AA AA AA AA AA AA AA AA AA AA AA AA
+--------------------------------------------------------------------------------
+
+CONFIG:  random_b2  |  strategy=per_head
+ROUGE-L: 0.0833
+PREDICTION:
+  A.
+--------------------------------------------------------------------------------
+
+CONFIG:  random_b4  |  strategy=per_head
+ROUGE-L: 0.0488
+PREDICTION:
+  A A A A A A A A A A A A A A A A A A A A A A A A A A A A A A A A A A A A A A A A A A A A A A A A A A A A A A A A A A A A A A A A A A A A A A A A A A A A A A A A A A A A A A A A A A A A A A A A A A A A
+--------------------------------------------------------------------------------
+
+CONFIG:  random_b6  |  strategy=per_head
+ROUGE-L: 0.1081
+PREDICTION:
+  A. (CNN) Share, and 12. (CNN) ) Brouss in 12. (CNN) ) ( a chain of generosity ) ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( ( (
+--------------------------------------------------------------------------------
+
+CONFIG:  random_b8  |  strategy=per_head
+ROUGE-L: 0.0163
+PREDICTION:
+  A kind of live-al-al-al-al-al-al-al-al-al-al-al-al-al-al-al-al-al-al-al-al-al-al-al-al-al-al-al-al-al-al-al-al-al-al-al-al-al-al-al-al-al-al-al-al-al-al-al-al-al-al-al-al-al-al-al-al-al-al-al-al-al-al-al-al-al-al-al-al-al-al-al-al-al-al-al-al-al-al-al-al-al-al-al-al-al-al-al-al-al-al-al-al-al-al-al-al
+--------------------------------------------------------------------------------
+
+CONFIG:  local_b1  |  strategy=layer_shared
+ROUGE-L: 0.0165
+PREDICTION:
+  A angel my divine divine divine divine divine divine divine divine divine divine divine divine divine divine divine divine divine divine divine divine divine divine divine divine divine divine divine divine divine divine divine divine divine divine divine divine divine divine divine divine divine divine divine divine divine divine divine divine divine divine divine divine divine divine divine divine divine divine divine divine divine divine divine divine divine divine divine divine divine divine divine divine divine divine divine divine divine divine divine divine divine divine divine divine divine divine divine divine divine divine divine divoral divoral d d
+--------------------------------------------------------------------------------
+
+CONFIG:  local_b2  |  strategy=layer_shared
+ROUGE-L: 0.0163
+PREDICTION:
+  A Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley
+--------------------------------------------------------------------------------
+
+CONFIG:  local_b3  |  strategy=layer_shared
+ROUGE-L: 0.0163
+PREDICTION:
+  A Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley
+--------------------------------------------------------------------------------
+
+CONFIG:  local_b4  |  strategy=layer_shared
+ROUGE-L: 0.0325
+PREDICTION:
+  A nice Shirley Williams her my my my my my my my my my my my my my my my my my my my my my my my my my my my my my my my my my my my my my my my my my my my my my my my my my my my my my my my my my my my my my my my my my my my my my my my my my my my my my my my my my my my my my my my my my my my my my my my
+--------------------------------------------------------------------------------
+
+CONFIG:  local_b5  |  strategy=layer_shared
+ROUGE-L: 0.0163
+PREDICTION:
+  A live donor my friend Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley
+--------------------------------------------------------------------------------
+
+CONFIG:  local_b6  |  strategy=layer_shared
+ROUGE-L: 0.0808
+PREDICTION:
+  A live chain transplanting rare. 140 options to consider matching pairs or chains. Summary: B Williams my angel my friend. Shirley Williams 140 options to consider MatchGrid or chains. Jacobs Program " Gen Matching up compatible Don and compatible Don and compatible Don and divine,angel my angel my friend Shirley Williams 140 live donor and recipient." Sign of the alistic donor is that opens possibilities for pairing compatible donors and recipients. Dr. Katznelson. Dr. Katznelson. Dr.
+--------------------------------------------------------------------------------
+
+CONFIG:  local_b7  |  strategy=layer_shared
+ROUGE-L: 0.0163
+PREDICTION:
+  A live Thursday Thursday Thursday Thursday Thursday Thursday Thursday Thursday Thursday Thursday Thursday Thursday Thursday Thursday Thursday Thursday Thursday Thursday Thursday Thursday Thursday Thursday Thursday Thursday Thursday Thursday Thursday Thursday Thursday Thursday Thursday Thursday Thursday Thursday Thursday Thursday Thursday Thursday Thursday Thursday Thursday Thursday Thursday Thursday Thursday Thursday Thursday Thursday Thursday Thursday Thursday Thursday Thursday Thursday Thursday Thursday Thursday Thursday Thursday Thursday Thursday Thursday Thursday Thursday Thursday Thursday Thursday Thursday Thursday Thursday Thursday Thursday Thursday Thursday Thursday Thursday Thursday Thursday Thursday Thursday Thursday Thursday Thursday Thursday Thursday Thursday Thursday Thursday Thursday Thursday Thursday Thursday Thursday Thursday Thursday Thursday Thursday Thursday
+--------------------------------------------------------------------------------
+
+CONFIG:  local_b8  |  strategy=layer_shared
+ROUGE-L: 0.0163
+PREDICTION:
+  A live Thursday Thursday Thursday Thursday Thursday Thursday Thursday Thursday Thursday Thursday Thursday Thursday Thursday Thursday Thursday Thursday Thursday Thursday Thursday Thursday Thursday Thursday Thursday Thursday Thursday Thursday Thursday Thursday Thursday Thursday Thursday Thursday Thursday Thursday Thursday Thursday Thursday Thursday Thursday Thursday Thursday Thursday Thursday Thursday Thursday Thursday Thursday Thursday Thursday Thursday Thursday Thursday Thursday Thursday Thursday Thursday Thursday Thursday Thursday Thursday Thursday Thursday Thursday Thursday Thursday Thursday Thursday Thursday Thursday Thursday Thursday Thursday Thursday Thursday Thursday Thursday Thursday Thursday Thursday Thursday Thursday Thursday Thursday Thursday Thursday Thursday Thursday Thursday Thursday Thursday Thursday Thursday Thursday Thursday Thursday Thursday Thursday Thursday
+--------------------------------------------------------------------------------
+
+CONFIG:  local_b1  |  strategy=per_head
+ROUGE-L: 0.0165
+PREDICTION:
+  A angel my divine divine divine divine divine divine divine divine divine divine divine divine divine divine divine divine divine divine divine divine divine divine divine divine divine divine divine divine divine divine divine divine divine divine divine divine divine divine divine divine divine divine divine divine divine divine divine divine divine divine divine divine divine divine divine divine divine divine divine divine divine divine divine divine divine divine divine divine divine divine divine divine divine divine divine divine divine divine divine divine divine divine divine divine divine divine divine divine divine divine divine divoral divoral d d
+--------------------------------------------------------------------------------
+
+CONFIG:  local_b2  |  strategy=per_head
+ROUGE-L: 0.0163
+PREDICTION:
+  A Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley
+--------------------------------------------------------------------------------
+
+CONFIG:  local_b3  |  strategy=per_head
+ROUGE-L: 0.0163
+PREDICTION:
+  A Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley
+--------------------------------------------------------------------------------
+
+CONFIG:  local_b4  |  strategy=per_head
+ROUGE-L: 0.0325
+PREDICTION:
+  A nice Shirley Williams her my my my my my my my my my my my my my my my my my my my my my my my my my my my my my my my my my my my my my my my my my my my my my my my my my my my my my my my my my my my my my my my my my my my my my my my my my my my my my my my my my my my my my my my my my my my my my my my
+--------------------------------------------------------------------------------
+
+CONFIG:  local_b5  |  strategy=per_head
+ROUGE-L: 0.0163
+PREDICTION:
+  A live donor my friend Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley
+--------------------------------------------------------------------------------
+
+CONFIG:  local_b6  |  strategy=per_head
+ROUGE-L: 0.0808
+PREDICTION:
+  A live chain transplanting rare. 140 options to consider matching pairs or chains. Summary: B Williams my angel my friend. Shirley Williams 140 options to consider MatchGrid or chains. Jacobs Program " Gen Matching up compatible Don and compatible Don and compatible Don and divine,angel my angel my friend Shirley Williams 140 live donor and recipient." Sign of the alistic donor is that opens possibilities for pairing compatible donors and recipients. Dr. Katznelson. Dr. Katznelson. Dr.
+--------------------------------------------------------------------------------
+
+CONFIG:  local_b7  |  strategy=per_head
+ROUGE-L: 0.0163
+PREDICTION:
+  A live Thursday Thursday Thursday Thursday Thursday Thursday Thursday Thursday Thursday Thursday Thursday Thursday Thursday Thursday Thursday Thursday Thursday Thursday Thursday Thursday Thursday Thursday Thursday Thursday Thursday Thursday Thursday Thursday Thursday Thursday Thursday Thursday Thursday Thursday Thursday Thursday Thursday Thursday Thursday Thursday Thursday Thursday Thursday Thursday Thursday Thursday Thursday Thursday Thursday Thursday Thursday Thursday Thursday Thursday Thursday Thursday Thursday Thursday Thursday Thursday Thursday Thursday Thursday Thursday Thursday Thursday Thursday Thursday Thursday Thursday Thursday Thursday Thursday Thursday Thursday Thursday Thursday Thursday Thursday Thursday Thursday Thursday Thursday Thursday Thursday Thursday Thursday Thursday Thursday Thursday Thursday Thursday Thursday Thursday Thursday Thursday Thursday Thursday
+--------------------------------------------------------------------------------
+
+CONFIG:  local_b8  |  strategy=per_head
+ROUGE-L: 0.0163
+PREDICTION:
+  A live Thursday Thursday Thursday Thursday Thursday Thursday Thursday Thursday Thursday Thursday Thursday Thursday Thursday Thursday Thursday Thursday Thursday Thursday Thursday Thursday Thursday Thursday Thursday Thursday Thursday Thursday Thursday Thursday Thursday Thursday Thursday Thursday Thursday Thursday Thursday Thursday Thursday Thursday Thursday Thursday Thursday Thursday Thursday Thursday Thursday Thursday Thursday Thursday Thursday Thursday Thursday Thursday Thursday Thursday Thursday Thursday Thursday Thursday Thursday Thursday Thursday Thursday Thursday Thursday Thursday Thursday Thursday Thursday Thursday Thursday Thursday Thursday Thursday Thursday Thursday Thursday Thursday Thursday Thursday Thursday Thursday Thursday Thursday Thursday Thursday Thursday Thursday Thursday Thursday Thursday Thursday Thursday Thursday Thursday Thursday Thursday Thursday Thursday
+--------------------------------------------------------------------------------
+
+CONFIG:  h2o_b1_r1  |  strategy=layer_shared
+ROUGE-L: 0.0165
+PREDICTION:
+  A angel my divine divine divine divine divine divine divine divine divine divine divine divine divine divine divine divine divine divine divine divine divine divine divine divine divine divine divine divine divine divine divine divine divine divine divine divine divine divine divine divine divine divine divine divine divine divine divine divine divine divine divine divine divine divine divine divine divine divine divine divine divine divine divine divine divine divine divine divine divine divine divine divine divine divine divine divine divine divine divine divine divine divine divine divine divine divine divine divine divine divine divine divoral divoral d d
+--------------------------------------------------------------------------------
+
+CONFIG:  h2o_b2_r1  |  strategy=layer_shared
+ROUGE-L: 0.1553
+PREDICTION:
+  A selfless act of kidney donation by Zully Broussard, a 32-year-old woman, has led to the successful transplantation of six patients' kidneys, thanks to a new technology that uses data analysis to find a match. The technology, developed by a team of researchers at California's University of California, Los Angeles (UCLA), uses genetic data to identify potential donors and recipients. Zully's donation has been recognized as a pioneering example of the power of data-driven medicine.
+--------------------------------------------------------------------------------
+
+CONFIG:  h2o_b2_r2  |  strategy=layer_shared
+ROUGE-L: 0.0163
+PREDICTION:
+  A Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley
+--------------------------------------------------------------------------------
+
+CONFIG:  h2o_b3_r1  |  strategy=layer_shared
+ROUGE-L: 0.2157
+PREDICTION:
+  A selfless act of kindness led to a remarkable medical breakthrough, as a California woman selflessly donated one of her kidneys to a stranger, which was then matched with six other recipients through a computer program. The program, called "paired donation," uses genetic data to find a compatible match, and has led to the successful transplantation of six patients. The story highlights the power of human kindness and the potential for technology to make a positive impact on healthcare.
+--------------------------------------------------------------------------------
+
+CONFIG:  h2o_b3_r2  |  strategy=layer_shared
+ROUGE-L: 0.1359
+PREDICTION:
+  A selfless act of kidney donation by Zully Broussard, a 32-year-old woman, has led to the successful transplantation of six patients' kidneys, thanks to a new technology that uses data analysis to find compatible donor-recipient pairs. The technology, developed by a team of surgeons and data scientists, uses genetic information to identify potential matches and match them with donors and recipients. Broussard's donation has been hailed as a game-changer in the field of organ transplantation,
+--------------------------------------------------------------------------------
+
+CONFIG:  h2o_b3_r3  |  strategy=layer_shared
+ROUGE-L: 0.0163
+PREDICTION:
+  A Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley
+--------------------------------------------------------------------------------
+
+CONFIG:  h2o_b4_r1  |  strategy=layer_shared
+ROUGE-L: 0.1720
+PREDICTION:
+  A woman named Zully Broussard selflessly donated one of her kidneys to a stranger, which was then matched with another recipient through a process called paired donation. The process, which involves swapping genetic profiles, has been used to match donors and recipients for transplants, and has been successful in pairing donors with recipients. The article highlights the incredible generosity of Broussard and the potential of this technology to save lives.
+--------------------------------------------------------------------------------
+
+CONFIG:  h2o_b4_r2  |  strategy=layer_shared
+ROUGE-L: 0.1458
+PREDICTION:
+  A selfless act of generosity led to the successful transplantation of six patients' kidneys, thanks to a chain of data processing and matching that involved a computer algorithm. The process, known as paired donation, allows donors to be matched with recipients based on genetic compatibility, reducing the number of potential matches and increasing the chances of successful transplants. The article highlights the importance of this technology in improving organ donation and saving lives.
+--------------------------------------------------------------------------------
+
+CONFIG:  h2o_b4_r3  |  strategy=layer_shared
+ROUGE-L: 0.1538
+PREDICTION:
+  A selfless act of kidney donation by Zully Broussard, a 35-year-old woman, has led to the successful transplantation of six patients' kidneys, thanks to a new technology that uses data analysis to match compatible donors and recipients. The technology, developed by a team of surgeons and researchers, has opened up new possibilities for pairing compatible donors and recipients, increasing the number of potential matches from just a few options to over 140. Broussard's act of kindness has inspired
+--------------------------------------------------------------------------------
+
+CONFIG:  h2o_b4_r4  |  strategy=layer_shared
+ROUGE-L: 0.0325
+PREDICTION:
+  A nice Shirley Williams her my my my my my my my my my my my my my my my my my my my my my my my my my my my my my my my my my my my my my my my my my my my my my my my my my my my my my my my my my my my my my my my my my my my my my my my my my my my my my my my my my my my my my my my my my my my my my my my
+--------------------------------------------------------------------------------
+
+CONFIG:  h2o_b5_r1  |  strategy=layer_shared
+ROUGE-L: 0.1584
+PREDICTION:
+  A selfless act of generosity led to a remarkable chain of events, where a kidney was successfully transplanted from one person to another through a process called paired donation. The process involves finding a compatible donor and recipient, and then using data processing to match them. The article highlights the incredible impact of this act, which has saved the lives of six patients, and has also inspired a new technology that can help find compatible donors and recipients.
+--------------------------------------------------------------------------------
+
+CONFIG:  h2o_b5_r2  |  strategy=layer_shared
+ROUGE-L: 0.1416
+PREDICTION:
+  A selfless act of generosity led to a remarkable chain of events, where six patients received transplants through a paired donation program. The program uses data processing to match compatible donors and recipients, allowing for a wider range of potential matches. The program was made possible by a computer algorithm that swaps the kidneys of a donor with a recipient, creating a new pair of donors and recipients. The program has been successful in pairing compatible donors and recipients, and has opened up new possibilities for matching donors and recipients.
+--------------------------------------------------------------------------------
+
+CONFIG:  h2o_b5_r5  |  strategy=layer_shared
+ROUGE-L: 0.0163
+PREDICTION:
+  A live donor my friend Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley
+--------------------------------------------------------------------------------
+
+CONFIG:  h2o_b6_r1  |  strategy=layer_shared
+ROUGE-L: 0.1667
+PREDICTION:
+  A selfless act of generosity led to a remarkable chain of transplants, with six patients receiving kidneys from a single donor, thanks to a computer program that matches compatible donors and recipients. The program, called MatchGrid, uses genetic profiles to identify potential matches and has been used to facilitate transplants in rare cases. The story highlights the power of altruism and the potential for technology to make a positive impact on human lives.
+--------------------------------------------------------------------------------
+
+CONFIG:  h2o_b6_r3  |  strategy=layer_shared
+ROUGE-L: 0.1667
+PREDICTION:
+  A woman named Zully Broussard selflessly donated one of her kidneys to a stranger, which was then matched with another donor to save the life of a patient. The process, known as paired donation, uses genetic profiles to find compatible donors and recipients, and has been successful in pairing donors and recipients in a remarkable chain of surgeries. The article highlights Broussard's generosity and the potential of paired donation to save lives.
+--------------------------------------------------------------------------------
+
+CONFIG:  h2o_b6_r4  |  strategy=layer_shared
+ROUGE-L: 0.1495
+PREDICTION:
+  A selfless act of generosity led to a chain of six transplants, with the donor's kidney being matched with six recipients through a computer program called MatchGrid. The program, developed by David Jacobs, uses genetic data to find compatible donors and recipients, and was inspired by a similar act of kindness by Zully Broussard, who selflessly donated her kidney to a stranger. The program has the potential to increase the number of available donor kidneys and improve the lives of those in need.
+--------------------------------------------------------------------------------
+
+CONFIG:  h2o_b6_r5  |  strategy=layer_shared
+ROUGE-L: 0.2136
+PREDICTION:
+  A selfless act of kidney donation by Zully Broussard has led to the successful transplantation of six patients, thanks to a new technology that uses genetic data to match donor and recipient pairs. The technology, developed by David Jacobs, uses a computer program to quickly identify compatible donors and recipients, opening up new possibilities for organ matching. Broussard's act of kindness has saved the lives of six patients, and has inspired a new generation of organ donors and recipients.
+--------------------------------------------------------------------------------
+
+CONFIG:  h2o_b7_r1  |  strategy=layer_shared
+ROUGE-L: 0.1239
+PREDICTION:
+  A selfless act of generosity led to a chain reaction of six kidney transplants, with the recipient of one kidney being paired with a donor, and the process taking over five surgeons to perform the surgeries. The chain of donations was facilitated by a computer program called MatchGrid, which matches compatible donors and recipients based on genetic profiles. The program was developed by a computer programmer who wanted to give back to the community. The act of altruism has been recognized as a powerful way to multiply the gift of
+--------------------------------------------------------------------------------
+
+CONFIG:  h2o_b7_r2  |  strategy=layer_shared
+ROUGE-L: 0.1667
+PREDICTION:
+  A selfless act of generosity led to a remarkable chain of transplants, with six patients receiving kidneys from a single donor. The process, known as paired donation, involves matching compatible donors and recipients through a computer program, allowing for a wider range of potential matches. The article highlights the power of altruism and the potential for genetic matching in organ donation.
+--------------------------------------------------------------------------------
+
+CONFIG:  h2o_b7_r3  |  strategy=layer_shared
+ROUGE-L: 0.1895
+PREDICTION:
+  A selfless act of generosity led to a remarkable chain of events, where six patients received transplants through a paired donation program. The program, which uses data processing to match compatible donors and recipients, was made possible by a kidney donation from a stranger, which was then matched with a recipient through a computer program. The program has the potential to save lives and increase the number of available organs for transplantation.
+--------------------------------------------------------------------------------
+
+CONFIG:  h2o_b7_r4  |  strategy=layer_shared
+ROUGE-L: 0.1636
+PREDICTION:
+  A woman named Zully Broussard selflessly donated one of her kidneys to a stranger, which was then matched with another donor to create a chain of six transplants. The chain was created using data processing and genetic matching, and it was able to find a compatible match for the recipient. The chain was able to find a match for the recipient, and the recipient was able to receive a kidney transplant. The chain was able to find a match for the recipient, and the recipient was able
+--------------------------------------------------------------------------------
+
+CONFIG:  h2o_b7_r5  |  strategy=layer_shared
+ROUGE-L: 0.1818
+PREDICTION:
+  A selfless act of generosity led to a chain of six kidney transplants, with the donor's kidney being matched with a stranger's recipient. The chain was made possible by a computer program called MatchGrid, which uses genetic data to find compatible donors and recipients. The program was developed by a programmer who used his skills to create a system that can quickly match up donors and recipients, opening up new possibilities for organ donation.
+--------------------------------------------------------------------------------
+
+CONFIG:  h2o_b8_r1  |  strategy=layer_shared
+ROUGE-L: 0.1649
+PREDICTION:
+  A selfless act of generosity led to a chain reaction of six kidney transplants, with the recipient of one kidney being paired with a donor, and the process continuing until all recipients are matched. The chain of surgeries was facilitated by a computer program called MatchGrid, which matched compatible donors and recipients based on genetic profiles. The article highlights the power of altruism and the potential for genetic matching technology to revolutionize organ donation.
+--------------------------------------------------------------------------------
+
+CONFIG:  h2o_b8_r2  |  strategy=layer_shared
+ROUGE-L: 0.1622
+PREDICTION:
+  A selfless act of generosity led to a chain reaction of six kidney transplants, with the donor's kidney being matched with a recipient through a process called paired donation. The process involves a computer program, called MatchGrid, which matches compatible donors and recipients based on genetic profiles. The chain of donations was facilitated by a computer programmer who created the program, called MatchGrid, which was used to find a suitable donor for a patient. The program was able to find a match for the patient's kidney
+--------------------------------------------------------------------------------
+
+CONFIG:  h2o_b8_r3  |  strategy=layer_shared
+ROUGE-L: 0.1869
+PREDICTION:
+  A woman named Zully Broussard selflessly donated one of her kidneys to a stranger, which was then matched with a recipient through a process called paired donation. The process involves a chain of surgeries, where the donated kidney is matched with a recipient, and the recipient is then matched with another donor. The chain of donations was facilitated by a computer program called MatchGrid, which was developed by a computer programmer named David Jacobs. Broussard's donation was a significant factor in the success
+--------------------------------------------------------------------------------
+
+CONFIG:  h2o_b8_r4  |  strategy=layer_shared
+ROUGE-L: 0.1607
+PREDICTION:
+  A selfless act of generosity led to a remarkable chain of transplants, with six patients receiving kidneys from a stranger's kidney donation. The process, known as paired donation, involves a computer program matching donor pairs, and the recipient's kidney is swapped with a donor's kidney. The chain of transplants was facilitated by a computer program created by a programmer, which allowed for a rapid and efficient matching process. The act of kindness and generosity led to a significant increase in the number of available kidneys for
+--------------------------------------------------------------------------------
+
+CONFIG:  h2o_b8_r5  |  strategy=layer_shared
+ROUGE-L: 0.1682
+PREDICTION:
+  A selfless act of generosity led to a remarkable chain of transplants, with six patients receiving kidneys from a stranger's kidney donation. The process, known as paired donation, uses genetic matching to find compatible donors and recipients, and was made possible by a computer programmer's creation of a matching program called MatchGrid. The chain of surgeries, which took about three weeks to complete, was made possible by Broussard's donation, which was matched with a stranger's kidney. The significance of the
+--------------------------------------------------------------------------------
+
+CONFIG:  h2o_b1_r1  |  strategy=per_head
+ROUGE-L: 0.0165
+PREDICTION:
+  A angel my divine divine divine divine divine divine divine divine divine divine divine divine divine divine divine divine divine divine divine divine divine divine divine divine divine divine divine divine divine divine divine divine divine divine divine divine divine divine divine divine divine divine divine divine divine divine divine divine divine divine divine divine divine divine divine divine divine divine divine divine divine divine divine divine divine divine divine divine divine divine divine divine divine divine divine divine divine divine divine divine divine divine divine divine divine divine divine divine divine divine divine divoral divoral d d
+--------------------------------------------------------------------------------
+
+CONFIG:  h2o_b2_r1  |  strategy=per_head
+ROUGE-L: 0.1505
+PREDICTION:
+  A selfless act of kindness led to a remarkable outcome: six patients received transplants after a kidney swap, thanks to a California-based organization that uses big data to match donors and recipients. The organization, which pairs donors with recipients based on genetic profiles, has been successful in finding matches for patients with rare genetic disorders. The story highlights the power of data-driven decision-making in improving healthcare outcomes.
+--------------------------------------------------------------------------------
+
+CONFIG:  h2o_b2_r2  |  strategy=per_head
+ROUGE-L: 0.0163
+PREDICTION:
+  A Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley
+--------------------------------------------------------------------------------
+
+CONFIG:  h2o_b3_r1  |  strategy=per_head
+ROUGE-L: 0.1616
+PREDICTION:
+  A woman named Zulma Broussard selflessly donated one of her kidneys to a stranger, which was then matched with a donor and used to save the life of a patient. Her generosity was paired with data processing, which enabled a chain of six transplants, resulting in the lives of 12 patients. The process, known as paired donation, uses genetic data to identify compatible donors and recipients, making it a rare and effective way to save lives.
+--------------------------------------------------------------------------------
+
+CONFIG:  h2o_b3_r2  |  strategy=per_head
+ROUGE-L: 0.1212
+PREDICTION:
+  A selfless act of donation led to the successful transplantation of six patients' kidneys, thanks to a new technique that uses big data to match compatible donors and recipients. The technique, developed by California-based researchers, uses genetic information to identify potential matches and then pairs them for surgery. The result is a significant increase in the number of patients who can receive transplants, making it possible for more people to live longer and healthier lives.
+--------------------------------------------------------------------------------
+
+CONFIG:  h2o_b3_r3  |  strategy=per_head
+ROUGE-L: 0.0163
+PREDICTION:
+  A Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley
+--------------------------------------------------------------------------------
+
+CONFIG:  h2o_b4_r1  |  strategy=per_head
+ROUGE-L: 0.1800
+PREDICTION:
+  A selfless act of generosity led to a remarkable chain of events, where six patients received transplants after a kidney was donated by a stranger. The process, known as paired donation, involves a computer program matching compatible donors and recipients, and a team of surgeons performing the surgeries. The article highlights the innovative use of big data and genetic analysis to facilitate the process, and the potential for this technology to revolutionize the field of organ transplantation.
+--------------------------------------------------------------------------------
+
+CONFIG:  h2o_b4_r2  |  strategy=per_head
+ROUGE-L: 0.1481
+PREDICTION:
+  A woman in California selflessly donated one of her kidneys to a stranger, which was then matched with six other patients through a process of genetic matching using data from donor-recipient pairs. The process, known as paired donation, has been used to match compatible donors and recipients for years, but it was only recently that it was used to pair a kidney with a recipient. The article highlights the potential of this technology to save lives and the remarkable story of Zelmyra Bocanegra, who
+--------------------------------------------------------------------------------
+
+CONFIG:  h2o_b4_r3  |  strategy=per_head
+ROUGE-L: 0.1359
+PREDICTION:
+  A selfless act of kidney donation by Zulma Broussard led to the successful transplantation of six patients' kidneys, thanks to a new technology that allows for paired donor-recipient matching using big data. The technology, developed by California-based company California Kidney Center, uses genetic data to identify compatible donors and recipients, increasing the chances of successful transplants. Broussard's donation was a significant contribution to the field of organ transplantation, and her act of kindness has inspired others to
+--------------------------------------------------------------------------------
+
+CONFIG:  h2o_b4_r4  |  strategy=per_head
+ROUGE-L: 0.0325
+PREDICTION:
+  A nice Shirley Williams her my my my my my my my my my my my my my my my my my my my my my my my my my my my my my my my my my my my my my my my my my my my my my my my my my my my my my my my my my my my my my my my my my my my my my my my my my my my my my my my my my my my my my my my my my my my my my my my
+--------------------------------------------------------------------------------
+
+CONFIG:  h2o_b5_r1  |  strategy=per_head
+ROUGE-L: 0.1404
+PREDICTION:
+  A selfless act of generosity led to a chain reaction of six kidney transplants, with the recipient of one kidney being paired with a donor, and the process taking five surgeons to perform the surgeries. The chain of donations was facilitated by a computer program called Match, which uses genetic data to find compatible matches. The program has been used to match donors and recipients in a rare and complex process called paired donation. The article highlights the power of altruism and the potential of technology to make a significant impact
+--------------------------------------------------------------------------------
+
+CONFIG:  h2o_b5_r2  |  strategy=per_head
+ROUGE-L: 0.1481
+PREDICTION:
+  A selfless act of generosity led to a remarkable chain of events, where six patients received transplants through a process called paired donation, where a donor's kidney is matched with a recipient's kidney. The process, which involves a computer program, was made possible by a California-based medical center that uses data to find compatible donors and recipients. The act of donation was inspired by a woman named Zola Broussard, who selflessly gave one of her kidneys to a stranger, and was later
+--------------------------------------------------------------------------------
+
+CONFIG:  h2o_b5_r3  |  strategy=per_head
+ROUGE-L: 0.1290
+PREDICTION:
+  A woman in California donated one of her kidneys to a stranger, which was then matched with six other patients receiving transplants. The process, known as paired donation, uses data to find compatible donors and recipients, and has been used to match donors and recipients for over 20 years. The article highlights the power of this technology and the impact of one woman's generosity on the lives of others.
+--------------------------------------------------------------------------------
+
+CONFIG:  h2o_b5_r5  |  strategy=per_head
+ROUGE-L: 0.0163
+PREDICTION:
+  A live donor my friend Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley Shirley
+--------------------------------------------------------------------------------
+
+CONFIG:  h2o_b6_r1  |  strategy=per_head
+ROUGE-L: 0.1649
+PREDICTION:
+  A selfless act of generosity led to a chain reaction of six kidney transplants, with the recipient of one kidney being paired with a donor, and the process taking over 40 days to complete. The chain of surgeries was facilitated by a computer program called Match, which uses genetic data to find compatible donor-recipient pairs. The program has the potential to revolutionize the process of organ donation, making it faster and more efficient.
+--------------------------------------------------------------------------------
+
+CONFIG:  h2o_b6_r2  |  strategy=per_head
+ROUGE-L: 0.1748
+PREDICTION:
+  A selfless act of generosity led to a chain reaction of six kidney transplants, with the recipient of one kidney being paired with a donor, and the process taking over 5 surgeons and 40 hours of data processing. The chain of surgeries was facilitated by a computer program called Match, which uses genetic data to find compatible donors and recipients. The program has the potential to revolutionize the field of organ donation, allowing for more matches and potentially saving lives.
+--------------------------------------------------------------------------------
+
+CONFIG:  h2o_b6_r4  |  strategy=per_head
+ROUGE-L: 0.1714
+PREDICTION:
+  A woman in California donated one of her kidneys to a stranger, which was then matched with a donor-recipient pair through a computer program called MatchGrid, resulting in six transplants. The program uses genetic data to find compatible donors and recipients, and has the potential to increase the number of available organs for transplantation. The woman's generosity has inspired others to pay it forward, and the program has been hailed as a game-changer in the field of organ donation.
+--------------------------------------------------------------------------------
+
+CONFIG:  h2o_b6_r5  |  strategy=per_head
+ROUGE-L: 0.1489
+PREDICTION:
+  A selfless act of kidney donation by Zulma Broussard led to a chain of six transplants, with data processing and matching using a computer program called MatchGrid. The program, developed by David Jacobs, has the potential to increase the number of available donor pairs, making it easier to find compatible donors and recipients. Broussard's act of kindness has inspired others to pay it forward, creating a ripple effect of altruism.
+--------------------------------------------------------------------------------
+
+CONFIG:  h2o_b7_r1  |  strategy=per_head
+ROUGE-L: 0.1556
+PREDICTION:
+  A selfless act of generosity led to a chain reaction of six transplants, with the recipient of one kidney being paired with a donor, and the process taking over 40 days to complete. The chain of surgeries was facilitated by a computer program called Match, which uses genetic data to find compatible donor-recipient pairs. The program has the potential to revolutionize the field of organ transplantation.
+--------------------------------------------------------------------------------
+
+CONFIG:  h2o_b7_r2  |  strategy=per_head
+ROUGE-L: 0.1538
+PREDICTION:
+  A selfless act of generosity led to a chain reaction of six kidney transplants, with the recipient of one kidney being paired with a donor, and the process taking over 40 days to complete. The chain of surgeries was facilitated by a computer program called Match, which uses genetic data to find compatible donor-recipient pairs. The program has the potential to revolutionize the field of organ transplantation.
+--------------------------------------------------------------------------------
+
+CONFIG:  h2o_b7_r3  |  strategy=per_head
+ROUGE-L: 0.1923
+PREDICTION:
+  A selfless act of generosity by Zully Broussard led to a chain of six transplants, with her kidney being matched with a stranger's kidney to save the life of her brother. The process, known as paired donation, uses genetic data to find compatible donors and recipients, and has been made possible by the use of a computer program called Match. Broussard's act has inspired others to consider donating their organs, and has been hailed as a "miracle" by some
+--------------------------------------------------------------------------------
+
+CONFIG:  h2o_b7_r4  |  strategy=per_head
+ROUGE-L: 0.1714
+PREDICTION:
+  A selfless act of generosity led to a remarkable chain of events, where six patients received transplants after a kidney was donated by a stranger. The process, known as paired donation, uses genetic matching to find compatible donors and recipients, and was made possible by a computer program called MatchGrid. The act of donation was guided by a higher power, as described by the donor, Zully Broussard, who selflessly gave one of her kidneys to a stranger. The chain of surgeries took
+--------------------------------------------------------------------------------
+
+CONFIG:  h2o_b7_r5  |  strategy=per_head
+ROUGE-L: 0.2368
+PREDICTION:
+  A woman in California donated one of her kidneys to a stranger, which was then matched with a donor-recipient pair through a computer program called MatchGrid, resulting in six transplants. The program has made it possible to create long chains of matching donors and recipients, opening up new possibilities for organ donation.
+--------------------------------------------------------------------------------
+
+CONFIG:  h2o_b8_r1  |  strategy=per_head
+ROUGE-L: 0.1584
+PREDICTION:
+  A selfless act of generosity led to a chain reaction of six transplants, with the recipient of one kidney receiving a kidney from a donor who was not a match, and the process being replicated for other patients. The chain of surgeries was facilitated by a computer program called Match, which uses genetic data to find compatible donor-recipient pairs. The program has the potential to revolutionize the process of organ donation, making it faster and more efficient.
+--------------------------------------------------------------------------------
+
+CONFIG:  h2o_b8_r2  |  strategy=per_head
+ROUGE-L: 0.1754
+PREDICTION:
+  A selfless act of generosity led to a chain reaction of six transplants, with the recipient of one kidney receiving a kidney from a stranger, thanks to a computer program that matches compatible donors and recipients. The program, called Match, was developed by a computer programmer who paid for the medical care of a kidney donor and created a database to help find compatible donors and recipients. The program has been used to match donors and recipients in a chain of five surgeries, with the goal of increasing the number of
+--------------------------------------------------------------------------------
+
+CONFIG:  h2o_b8_r3  |  strategy=per_head
+ROUGE-L: 0.1474
+PREDICTION:
+  A selfless act of generosity by Zully Broussard led to a chain reaction of six transplants, as her kidney was paired with a donor and then used to save the life of another person. The process, known as paired donation, uses genetic data to match compatible donors and recipients, making it possible to save more lives. The article highlights the potential of this technology to revolutionize organ donation and improve patient outcomes.
+--------------------------------------------------------------------------------
+
+CONFIG:  h2o_b8_r4  |  strategy=per_head
+ROUGE-L: 0.1887
+PREDICTION:
+  A selfless act of generosity by Zully Broussard led to a chain of six transplants, with her kidney being matched with a stranger's kidney to save the life of her brother. The process, known as paired donation, uses genetic data to find compatible donors and recipients, and has been made possible by the creation of a program called MatchGrid. Broussard's act of kindness has inspired others to pay it forward, and has opened up new possibilities for matching donors and recipients
+--------------------------------------------------------------------------------
+
+CONFIG:  h2o_b8_r5  |  strategy=per_head
+ROUGE-L: 0.2095
+PREDICTION:
+  A selfless act of generosity by Zully Broussard led to a chain of six transplants, with her kidney being matched with a stranger's kidney to save the life of her brother. The process, known as paired donation, uses genetic data to find compatible donors and recipients, and has been made possible by the creation of a computer program called MatchGrid. The chain of surgeries took only three weeks to complete, thanks to Broussard's donation. The medical team at California's
+--------------------------------------------------------------------------------
