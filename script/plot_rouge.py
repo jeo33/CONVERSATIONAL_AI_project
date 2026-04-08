@@ -229,6 +229,83 @@ plt.savefig(out, dpi=150, bbox_inches="tight")
 plt.close()
 print(f"Saved: {out}")
 
+# ══════════════════════════════════════════════════════════════════════════════
+# Plot 1b: Same as Plot 1 but y-axis = % of full-cache ROUGE-L (coverage)
+# ══════════════════════════════════════════════════════════════════════════════
+if full_rouge:
+    fig, ax = plt.subplots(figsize=(14, 7))
+    fig.suptitle(f"H2O + Local KV Cache — Coverage (% of Full-Cache ROUGE-L)  (cache_size={CACHE_SIZE})",
+                 fontsize=13, fontweight="bold")
+
+    all_budgets = []
+    ax.axhline(100, color="black", linestyle=":", linewidth=1.4, label="Full cache (100%)")
+
+    for rv in recent_vals:
+        recent_tok = to_recent_budget(rv)
+        for strategy in ["per_head", "layer_shared"]:
+            ls = STRATEGY_LS[strategy]
+            mk = STRATEGY_MK[strategy]
+            grp = sorted([r for r in h2o_records
+                          if r["recent_pct"] == rv and r["strategy"] == strategy],
+                         key=lambda r: r["budget_pct"])
+            if not grp:
+                continue
+            xs = [r["budget_pct"] for r in grp]
+            ys = [r["rouge_l"] / full_rouge * 100 for r in grp]
+            all_budgets.extend(xs)
+            lbl = f"H2O recent={rv}% ({recent_tok} tok)" if strategy == "per_head" else None
+            ax.plot(xs, ys, marker=mk, linestyle=ls,
+                    color=h2o_colour[rv], linewidth=1.6, markersize=5, label=lbl)
+
+    rand = sorted([r for r in records if r["method"] == "random"],
+                  key=lambda r: r["budget_pct"])
+    if rand:
+        xs = [r["budget_pct"] for r in rand]
+        ys = [r["rouge_l"] / full_rouge * 100 for r in rand]
+        all_budgets.extend(xs)
+        ax.plot(xs, ys, marker="^", linestyle="-",
+                color=RANDOM_COLOUR, linewidth=2.2, markersize=6, label="Random")
+
+    for strategy in ["per_head", "layer_shared"]:
+        ls = STRATEGY_LS[strategy]
+        mk = STRATEGY_MK[strategy]
+        strat_lbl = strategy.replace("_", " ")
+        local = sorted([r for r in records if r["method"] == "local"
+                        and r["strategy"] == strategy],
+                       key=lambda r: r["budget_pct"])
+        if not local:
+            continue
+        xs = [r["budget_pct"] for r in local]
+        ys = [r["rouge_l"] / full_rouge * 100 for r in local]
+        all_budgets.extend(xs)
+        ax.plot(xs, ys, marker=mk, linestyle=ls,
+                color=LOCAL_COLOUR, linewidth=2.2, markersize=6,
+                label=f"Local ({strat_lbl})")
+
+    ticks = sorted(set(all_budgets))
+    ax.set_xticks(ticks)
+    ax.set_xticklabels([f"{t}%\n({to_total_budget(t)} tok)" for t in ticks], fontsize=8)
+    ax.set_xlim(max(ticks) + 2, min(ticks) - 2)
+    ax.set_xlabel("TOTAL_BUDGET  [budget_ratio %  (= max(16, 512 × ratio) tokens)]")
+    ax.set_ylabel("% of Full-Cache ROUGE-L")
+
+    style_handles = [
+        Line2D([0], [0], color="gray", linestyle="-",  marker="o", label="solid = per head"),
+        Line2D([0], [0], color="gray", linestyle="--", marker="s", label="dashed = layer shared"),
+    ]
+    data_handles, data_labels = ax.get_legend_handles_labels()
+    ax.legend(handles=style_handles + data_handles,
+              labels=["solid = per head", "dashed = layer shared"] + data_labels,
+              fontsize=7, ncol=1, loc="upper left",
+              bbox_to_anchor=(1.01, 1), borderaxespad=0)
+    ax.grid(True, alpha=0.3)
+
+    plt.tight_layout(rect=[0, 0, 0.82, 1])
+    out = OUTPUT_DIR / "h2o_coverage_vs_budget.png"
+    plt.savefig(out, dpi=150, bbox_inches="tight")
+    plt.close()
+    print(f"Saved: {out}")
+
 
 # ══════════════════════════════════════════════════════════════════════════════
 # Plot 2: Method comparison — Full / Random / Local / H2O-best
@@ -316,6 +393,71 @@ out = OUTPUT_DIR / "method_comparison_rouge_vs_budget.png"
 plt.savefig(out, dpi=150, bbox_inches="tight")
 plt.close()
 print(f"Saved: {out}")
+
+# ══════════════════════════════════════════════════════════════════════════════
+# Plot 2b: Coverage — % of full-cache ROUGE-L retained per method
+# ══════════════════════════════════════════════════════════════════════════════
+if full_rouge:
+    fig, ax = plt.subplots(figsize=(10, 5))
+    fig.suptitle("Coverage: % of Full-Cache ROUGE-L Retained by Method",
+                 fontsize=13, fontweight="bold")
+
+    all_budgets = []
+
+    # Random
+    rand = sorted([r for r in records if r["method"] == "random"],
+                  key=lambda r: r["budget_pct"])
+    if rand:
+        xs = [r["budget_pct"] for r in rand]
+        ys = [r["rouge_l"] / full_rouge * 100 for r in rand]
+        ax.plot(xs, ys, marker="^", linestyle="-", color=METHOD_COLOURS["Random"],
+                linewidth=2, markersize=6, label="Random")
+        all_budgets.extend(xs)
+
+    # Local + H2O best — per strategy
+    for strategy in ["per_head", "layer_shared"]:
+        ls = STRATEGY_LS[strategy]
+        mk = STRATEGY_MK[strategy]
+        strat_label = strategy.replace("_", " ")
+
+        local = sorted([r for r in records if r["method"] == "local"
+                        and r["strategy"] == strategy],
+                       key=lambda r: r["budget_pct"])
+        if local:
+            xs = [r["budget_pct"] for r in local]
+            ys = [r["rouge_l"] / full_rouge * 100 for r in local]
+            ax.plot(xs, ys, marker=mk, linestyle=ls,
+                    color=METHOD_COLOURS["Local (sliding window)"],
+                    linewidth=2, markersize=6, label=f"Local ({strat_label})")
+            all_budgets.extend(xs)
+
+        h2o_strat = [r for r in h2o_records if r["strategy"] == strategy]
+        best_h2o = {}
+        for r in h2o_strat:
+            b = r["budget_pct"]
+            if b not in best_h2o or r["rouge_l"] > best_h2o[b]["rouge_l"]:
+                best_h2o[b] = r
+        if best_h2o:
+            xs = sorted(best_h2o.keys())
+            ys = [best_h2o[b]["rouge_l"] / full_rouge * 100 for b in xs]
+            ax.plot(xs, ys, marker=mk, linestyle=ls,
+                    color=METHOD_COLOURS["H2O best"],
+                    linewidth=2, markersize=6, label=f"H2O best ({strat_label})")
+            all_budgets.extend(xs)
+
+    ax.axhline(100, color="black", linestyle=":", linewidth=1.4, label="Full cache (100%)")
+    set_xaxis(ax, all_budgets)
+    ax.set_xlabel("Budget %")
+    ax.set_ylabel("% of Full-Cache ROUGE-L")
+    ax.set_title("solid = per head   |   dashed = layer shared", fontsize=9, color="gray")
+    ax.legend(fontsize=8)
+    ax.grid(True, alpha=0.3)
+
+    plt.tight_layout()
+    out = OUTPUT_DIR / "coverage_vs_budget.png"
+    plt.savefig(out, dpi=150, bbox_inches="tight")
+    plt.close()
+    print(f"Saved: {out}")
 
 # ══════════════════════════════════════════════════════════════════════════════
 # Plot 3: Avg Latency + Avg Memory — H2O + Local  (same style as Plot 1)
