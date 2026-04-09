@@ -541,4 +541,196 @@ plt.savefig(out, dpi=150, bbox_inches="tight")
 plt.close()
 print(f"Saved: {out}")
 
+# ══════════════════════════════════════════════════════════════════════════════
+# Plot 4a: Horizontal bar — all configs ranked
+# ══════════════════════════════════════════════════════════════════════════════
+sorted_recs = sorted(records, key=lambda r: r["rouge_l"], reverse=True)
+labels  = [f"{r['mode'][:12]}\n{r['strategy'][:3]}" for r in sorted_recs]
+vals    = [r["rouge_l"] for r in sorted_recs]
+colours = ["steelblue" if r["method"] == "h2o" else
+           "darkorange" if r["method"] == "local" else
+           "crimson"   if r["method"] == "full"  else "gray"
+           for r in sorted_recs]
+ypos = range(len(vals))
+fig, ax = plt.subplots(figsize=(10, max(6, len(vals) * 0.18)))
+ax.barh(list(ypos), vals, color=colours, height=0.7)
+ax.set_yticks(list(ypos))
+ax.set_yticklabels(labels, fontsize=5)
+ax.set_xlabel("ROUGE-L Score")
+ax.set_title("ROUGE-L Comparison Across All Methods", fontsize=11, fontweight="bold")
+for i, v in enumerate(vals):
+    ax.text(v + 0.001, i, f"{v:.4f}", va="center", fontsize=4)
+ax.invert_yaxis()
+ax.grid(True, axis="x", alpha=0.3)
+plt.tight_layout()
+out = OUTPUT_DIR / "rouge_all_configs_bar.png"
+plt.savefig(out, dpi=150, bbox_inches="tight")
+plt.close()
+print(f"Saved: {out}")
+
+# ── Plot 4b: Avg ROUGE-L by method group ──────────────────────────────────────
+groups = {"baseline (full)": [r["rouge_l"] for r in records if r["method"] == "full"],
+          "h2o":             [r["rouge_l"] for r in records if r["method"] == "h2o"],
+          "local":           [r["rouge_l"] for r in records if r["method"] == "local"],
+          "random":          [r["rouge_l"] for r in records if r["method"] == "random"]}
+grp_colours = {"baseline (full)": "teal", "h2o": "yellowgreen", "local": "silver", "random": "steelblue"}
+grp_labels  = list(groups.keys())
+grp_means   = [np.mean(v) if v else 0 for v in groups.values()]
+fig, ax = plt.subplots(figsize=(7, 5))
+bars = ax.bar(grp_labels, grp_means, color=[grp_colours[g] for g in grp_labels])
+for bar, val in zip(bars, grp_means):
+    ax.text(bar.get_x() + bar.get_width() / 2, bar.get_height() + 0.002,
+            f"{val:.4f}", ha="center", va="bottom", fontsize=10, fontweight="bold")
+ax.set_ylabel("Average ROUGE-L Score")
+ax.set_title("Average ROUGE-L by Method Type", fontsize=11, fontweight="bold")
+ax.grid(True, axis="y", alpha=0.3)
+plt.tight_layout()
+out = OUTPUT_DIR / "rouge_avg_by_method.png"
+plt.savefig(out, dpi=150, bbox_inches="tight")
+plt.close()
+print(f"Saved: {out}")
+
+# ── Plot 4c: Boxplot by strategy ──────────────────────────────────────────────
+strat_data = {s: [r["rouge_l"] for r in records if r.get("strategy") == s]
+              for s in ["layer_shared", "per_head"]}
+fig, ax = plt.subplots(figsize=(6, 5))
+ax.boxplot([strat_data["layer_shared"], strat_data["per_head"]],
+           labels=["layer_shared", "per_head"],
+           patch_artist=True,
+           boxprops=dict(facecolor="salmon", alpha=0.6),
+           medianprops=dict(color="darkred", linewidth=2))
+ax.set_ylabel("ROUGE-L Score")
+ax.set_title("ROUGE-L Distribution by Strategy", fontsize=11, fontweight="bold")
+ax.grid(True, axis="y", alpha=0.3)
+plt.tight_layout()
+out = OUTPUT_DIR / "rouge_boxplot_by_strategy.png"
+plt.savefig(out, dpi=150, bbox_inches="tight")
+plt.close()
+print(f"Saved: {out}")
+
+# ── Plot 4d: Scatter — H2O budget vs ROUGE-L ─────────────────────────────────
+fig, ax = plt.subplots(figsize=(8, 5))
+for strategy, colour in [("layer_shared", "steelblue"), ("per_head", "darkorange")]:
+    grp = [r for r in h2o_records if r["strategy"] == strategy]
+    xs  = [f"b{r['budget_pct']//10}" for r in grp]
+    ys  = [r["rouge_l"] for r in grp]
+    ax.scatter(xs, ys, color=colour, label=strategy, s=50, alpha=0.8)
+ax.set_xlabel("Budget Block (b)")
+ax.set_ylabel("ROUGE-L Score")
+ax.set_title("H2O: Budget vs ROUGE-L Score", fontsize=11, fontweight="bold")
+ax.legend(fontsize=9)
+ax.grid(True, alpha=0.3)
+plt.tight_layout()
+out = OUTPUT_DIR / "rouge_h2o_scatter.png"
+plt.savefig(out, dpi=150, bbox_inches="tight")
+plt.close()
+print(f"Saved: {out}")
+
+# ══════════════════════════════════════════════════════════════════════════════
+# Plot 5: Recent-ratio lines — x=recent%, one line per budget level
+#         solid=per_head, dashed=layer_shared, baseline dotted ref
+# ══════════════════════════════════════════════════════════════════════════════
+budget_levels = sorted(set(r["budget_pct"] for r in h2o_records))
+recent_levels = sorted(set(r["recent_pct"] for r in h2o_records))
+
+cmap_b = plt.colormaps["viridis"].resampled(len(budget_levels))
+b_colour = {b: cmap_b(i) for i, b in enumerate(budget_levels)}
+
+fig, ax = plt.subplots(figsize=(13, 7))
+fig.suptitle("H2O (All Strategies): ROUGE-L vs Recent Ratio\n(Solid=per_head, Dash=layer_shared)",
+             fontsize=12, fontweight="bold")
+
+if full_rouge:
+    ax.axhline(full_rouge, color="red", linestyle="--", linewidth=1.8,
+               label=f"Baseline: {full_rouge:.4f}")
+
+for b in budget_levels:
+    blabel = f"b{b//10}"
+    for strategy, ls in [("per_head", "-"), ("layer_shared", "--")]:
+        pts = sorted([r for r in h2o_records
+                      if r["budget_pct"] == b and r["strategy"] == strategy
+                      and r["recent_pct"] <= b],         # recent must be ≤ budget
+                     key=lambda r: r["recent_pct"])
+        if not pts:
+            continue
+        xs = [f"{r['recent_pct']}%" for r in pts]
+        ys = [r["rouge_l"] for r in pts]
+        mk = "o" if strategy == "per_head" else "s"
+        lbl = blabel if strategy == "per_head" else None
+        ax.plot(xs, ys, marker=mk, linestyle=ls, color=b_colour[b],
+                linewidth=1.8, markersize=6, label=lbl)
+
+ax.set_xlabel("Recent Ratio (%)")
+ax.set_ylabel("ROUGE-L Score")
+ax.grid(True, alpha=0.3)
+
+# Two separate legends
+from matplotlib.lines import Line2D as _L2D
+strat_legend = [_L2D([0],[0], color="gray", ls="-",  marker="o", label="per_head"),
+                _L2D([0],[0], color="gray", ls="--", marker="s", label="layer_shared"),
+                _L2D([0],[0], color="red",  ls="--",             label=f"Baseline: {full_rouge:.4f}" if full_rouge else "Baseline")]
+budget_handles = [_L2D([0],[0], color=b_colour[b], marker="o", ls="-",
+                       label=f"b{b//10}") for b in budget_levels]
+
+leg1 = ax.legend(handles=budget_handles, title="Budget Level",
+                 fontsize=8, loc="upper left", bbox_to_anchor=(0, 1))
+ax.add_artist(leg1)
+ax.legend(handles=strat_legend, title="Strategy / Reference",
+          fontsize=8, loc="upper right")
+
+plt.tight_layout()
+out = OUTPUT_DIR / "rouge_recent_ratio_lines.png"
+plt.savefig(out, dpi=150, bbox_inches="tight")
+plt.close()
+print(f"Saved: {out}")
+
+# ══════════════════════════════════════════════════════════════════════════════
+# Plot 6: Heatmap — budget × recent, one per strategy
+# ══════════════════════════════════════════════════════════════════════════════
+import matplotlib.colors as mcolors
+
+for strategy in ["per_head", "layer_shared"]:
+    b_vals = sorted(set(r["budget_pct"] for r in h2o_records))
+    r_vals = sorted(set(r["recent_pct"] for r in h2o_records))
+
+    # Build matrix; fill NaN where recent >= budget (invalid)
+    mat = np.full((len(b_vals), len(r_vals)), np.nan)
+    lookup = {(r["budget_pct"], r["recent_pct"]): r["rouge_l"]
+              for r in h2o_records if r["strategy"] == strategy}
+    for bi, b in enumerate(b_vals):
+        for ri, rv in enumerate(r_vals):
+            if rv < b:   # only valid configs
+                mat[bi, ri] = lookup.get((b, rv), np.nan)
+
+    cmap_hm = mcolors.LinearSegmentedColormap.from_list(
+        "rg", ["#d73027", "#fee08b", "#1a9850"])
+    vmin, vmax = np.nanmin(mat), np.nanmax(mat)
+
+    fig, ax = plt.subplots(figsize=(9, 8))
+    im = ax.imshow(mat, cmap=cmap_hm, vmin=vmin, vmax=vmax, aspect="auto")
+    plt.colorbar(im, ax=ax, label="ROUGE-L Score")
+
+    ax.set_xticks(range(len(r_vals)))
+    ax.set_xticklabels([f"r{rv//10}" for rv in r_vals])
+    ax.set_yticks(range(len(b_vals)))
+    ax.set_yticklabels([f"b{b//10}" for b in b_vals])
+    ax.set_xlabel("Recent Ratio (r)")
+    ax.set_ylabel("Budget Ratio (b)")
+    ax.set_title(f"H2O {strategy.replace('_',' ').title()}: ROUGE-L Score Heatmap (Budget vs Recent Ratio)",
+                 fontsize=11, fontweight="bold")
+
+    for bi in range(len(b_vals)):
+        for ri in range(len(r_vals)):
+            v = mat[bi, ri]
+            if not np.isnan(v):
+                colour = "white" if v < (vmin + (vmax - vmin) * 0.4) else "black"
+                ax.text(ri, bi, f"{v:.3f}", ha="center", va="center",
+                        fontsize=9, fontweight="bold", color=colour)
+
+    plt.tight_layout()
+    out = OUTPUT_DIR / f"rouge_budget_heatmap_{strategy}.png"
+    plt.savefig(out, dpi=150, bbox_inches="tight")
+    plt.close()
+    print(f"Saved: {out}")
+
 print("\nAll plots saved to:", OUTPUT_DIR)
