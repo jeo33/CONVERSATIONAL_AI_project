@@ -25,7 +25,9 @@ def _patch_torch_autocast_compat():
             return _orig()
         torch.is_autocast_enabled = _compat
         print("[Compat] Patched torch.is_autocast_enabled for transformers compatibility")
+        
 _patch_torch_autocast_compat()
+
 MODEL_NAME = "meta-llama/Llama-3.2-1B-Instruct"
 hf_token = os.environ.get("HF_TOKEN", "")
 print(f"PyTorch: {torch.__version__}")
@@ -139,7 +141,7 @@ def load_dataset_config(dataset_name):
             "id_field": "id",
             "prompt_template": "Summarize this article in 2-3 sentences:\n\nArticle: {text}\n\nSummary:",
             "task_type": "summarization",
-            "max_seq_len": 3000,  # Practical limit for 1B model on 80GB GPU
+            "max_seq_len": 3000,  
             "cache_size": 512,
         },
         "gov_report": {
@@ -149,7 +151,7 @@ def load_dataset_config(dataset_name):
             "id_field": "_id",
             "prompt_template": "Summarize the government report in 2-3 sentences:\n\nDocument: {text}\n\nSummary:",
             "task_type": "summarization",
-            "max_seq_len": 3000,  # Long-context dataset, but GPU-memory constrained
+            "max_seq_len": 3000, 
             "cache_size": 512,
             "default_split": "test",  # LongBench only has 'test'
         },
@@ -160,7 +162,7 @@ def load_dataset_config(dataset_name):
             "id_field": "_id",
             "prompt_template": "Summarize the meeting in 2-3 sentences:\n\nTranscript: {text}\n\nSummary:",
             "task_type": "summarization",
-            "max_seq_len": 3000,  # Long-context dataset, but GPU-memory constrained
+            "max_seq_len": 3000,  
             "cache_size": 512,
             "default_split": "test",  # LongBench only has 'test'
         },
@@ -171,7 +173,7 @@ def load_dataset_config(dataset_name):
             "id_field": "_id",
             "prompt_template": "Summarize this video content in 2-3 sentences:\n\nTranscript: {text}\n\nSummary:",
             "task_type": "summarization",
-            "max_seq_len": 3000,  # Long-context dataset, but GPU-memory constrained
+            "max_seq_len": 3000, 
             "cache_size": 512,
             "default_split": "test",  # LongBench only has 'test'
         },
@@ -190,7 +192,8 @@ dataset_cfg = load_dataset_config(DATASET_ARG)
 MAX_SEQ_LEN = dataset_cfg["max_seq_len"]
 CACHE_SIZE = dataset_cfg["cache_size"]
 
-# Apply command-line overrides if provided
+
+
 if MAX_SEQ_LEN_OVERRIDE is not None:
     MAX_SEQ_LEN = MAX_SEQ_LEN_OVERRIDE
 if CACHE_SIZE_OVERRIDE is not None:
@@ -215,7 +218,9 @@ print(f"Samples:         {NUM_SAMPLES_ARG or 'all'}")
 print(f"{'='*60}\n")
 print("Loading dataset...")
 ds = dataset_cfg["loader"]()
+
 # Some datasets (LongBench) only have 'test', not 'validation'. Fall back automatically.
+
 if SPLIT not in ds:
     fallback = dataset_cfg.get("default_split", "test")
     print(f"  WARNING: split '{SPLIT}' not found in dataset. Available: {list(ds.keys())}")
@@ -244,7 +249,7 @@ print(f"  Layers: {len(model.model.layers)}\n")
 def is_chinese(text):
     """Check if text contains Chinese characters."""
     for char in text:
-        if '\u4e00' <= char <= '\u9fff':  # CJK Unified Ideographs range
+        if '\u4e00' <= char <= '\u9fff': 
             return True
     return False
 
@@ -257,7 +262,6 @@ def compute_char_level_rouge(pred, ref):
     if not m or not n:
         return 0.0
     
-    # Dynamic programming for LCS
     dp = [[0] * (n + 1) for _ in range(m + 1)]
     for i in range(1, m + 1):
         for j in range(1, n + 1):
@@ -280,7 +284,7 @@ try:
     def compute_rouge_l(pred, ref):
         if not pred.strip() or not ref.strip():
             return 0.0
-        # For Chinese text, use character-level LCS instead of word-level ROUGE
+        
         if is_chinese(ref):
             return compute_char_level_rouge(pred, ref)
         return _scorer.score(ref, pred)['rougeL'].fmeasure
@@ -542,7 +546,6 @@ def visualize_and_log(model, tokenizer, sample, kv_mode, kv_cfg,
                 top_idx = np.argsort(ks[:rec_start])[-HH_BUDGET:]
                 mask[top_idx] = 1
         elif kv_cfg.get("random", False):
-            # For random: don't show partition, just show eviction budget
             pass
         else:
             mask[:] = 2
@@ -697,7 +700,7 @@ print("Quick test on 1 sample...")
 _s      = ds[SPLIT][0]
 _text   = _s[dataset_cfg["text_field"]]
 _ref    = _s[dataset_cfg["summary_field"]]
-# Handle both list and string reference formats
+
 _ref_str = _ref[0] if isinstance(_ref, list) and _ref else str(_ref)
 _prompt = dataset_cfg["prompt_template"].format(text=_text)
 _inp    = tokenizer(_prompt, return_tensors="pt", truncation=True,
