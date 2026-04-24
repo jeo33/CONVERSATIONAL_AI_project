@@ -151,6 +151,7 @@ def load_dataset_config(dataset_name):
             "task_type": "summarization",
             "max_seq_len": 3000,  # Long-context dataset, but GPU-memory constrained
             "cache_size": 512,
+            "default_split": "test",  # LongBench only has 'test'
         },
         "qmsum": {
             "loader": lambda: load_dataset("THUDM/LongBench", "qmsum"),
@@ -161,6 +162,7 @@ def load_dataset_config(dataset_name):
             "task_type": "summarization",
             "max_seq_len": 3000,  # Long-context dataset, but GPU-memory constrained
             "cache_size": 512,
+            "default_split": "test",  # LongBench only has 'test'
         },
         "vcsum": {
             "loader": lambda: load_dataset("THUDM/LongBench", "vcsum"),
@@ -171,6 +173,7 @@ def load_dataset_config(dataset_name):
             "task_type": "summarization",
             "max_seq_len": 3000,  # Long-context dataset, but GPU-memory constrained
             "cache_size": 512,
+            "default_split": "test",  # LongBench only has 'test'
         },
     }
     
@@ -212,6 +215,12 @@ print(f"Samples:         {NUM_SAMPLES_ARG or 'all'}")
 print(f"{'='*60}\n")
 print("Loading dataset...")
 ds = dataset_cfg["loader"]()
+# Some datasets (LongBench) only have 'test', not 'validation'. Fall back automatically.
+if SPLIT not in ds:
+    fallback = dataset_cfg.get("default_split", "test")
+    print(f"  WARNING: split '{SPLIT}' not found in dataset. Available: {list(ds.keys())}")
+    print(f"  Falling back to split: '{fallback}'")
+    SPLIT = fallback
 NUM_SAMPLES = len(ds[SPLIT]) if NUM_SAMPLES_ARG == -1 else NUM_SAMPLES_ARG
 print(f"  {SPLIT} split → {NUM_SAMPLES} samples\n")
 print(f"Loading model: {MODEL_NAME}")
